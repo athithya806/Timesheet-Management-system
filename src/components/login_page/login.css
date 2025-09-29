@@ -1,0 +1,193 @@
+/* base scene */
+.login-scene {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: radial-gradient(1200px 600px at 50% 30%, rgba(2,18,32,0.55), rgba(2,8,14,1));
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  color: #dff7ff;
+}
+
+/* canvases (grid and particles) */
+.login-scene .login-scene__grid-canvas,
+.login-scene .login-scene__particles-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Holographic platform (center) */
+.login-scene .login-scene__holo-platform {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  transform: translate(-50%, -50%);
+  width: 520px;
+  height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* rotating ring */
+.login-scene .login-scene__ring {
+  position: absolute;
+  width: 460px;
+  height: 180px;
+  border-radius: 50%;
+  transform: translateY(38px);
+  background:
+    radial-gradient(closest-side, rgba(0,240,255,0.08), rgba(0,120,160,0.01) 55%, transparent 60%),
+    conic-gradient(from 0deg at 50% 50%, rgba(0,240,255,0.06), rgba(255,160,60,0.06), rgba(0,240,255,0.06));
+  filter: blur(6px);
+  box-shadow: 0 12px 40px rgba(0,180,255,0.05), 0 -6px 30px rgba(120,220,255,0.02);
+  animation: ringRotate 14s linear infinite;
+}
+
+@keyframes ringRotate {
+  from { transform: translateY(38px) rotate(0deg); }
+  to   { transform: translateY(38px) rotate(360deg); }
+}
+
+/* padlock centerpiece */
+.login-scene .login-scene__padlock {
+  width: 170px;
+  height: 210px;
+  z-index: 3;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 18px rgba(6,20,30,0.6));
+  transform: translateY(-10px) scale(1.03);
+  mix-blend-mode: screen;
+  opacity: 0.98;
+}
+
+/* glow under platform */
+.login-scene .login-scene__platform-glow {
+  position: absolute;
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 480px;
+  height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,220,255,0.12), rgba(0,160,200,0.05) 40%, rgba(6,10,18,0) 70%);
+  filter: blur(22px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* vertical light rays */
+.login-scene .login-scene__holo-platform::after {
+  content: "";
+  position: absolute;
+  top: -140px;
+  left: 0;
+  right: 0;
+  height: 420px;
+  background-image: linear-gradient( to bottom,
+    rgba(0,200,255,0.04),
+    rgba(0,200,255,0.02) 10%,
+    rgba(255,160,60,0.00) 60%,
+    rgba(0,10,20,0.4) 85%);
+  pointer-events: none;
+}
+
+/* login box */
+.login-scene .login-scene__login-box {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -45%);
+  width: 360px;
+  background: linear-gradient(180deg, rgba(2,12,20,0.9), rgba(2,8,14,0.88));
+  border-radius: 14px;
+  padding: 40px;
+  box-shadow: 0 12px 40px rgba(0, 150, 200, 0.12), 0 4px 12px rgba(0,0,0,0.5);
+  color: #eafcff;
+  text-align: center;
+  border: 1px solid rgba(100,200,255,0.06);
+}
+
+/* header */
+.login-scene .login-scene__login-box h2 {
+  margin: 0 0 18px 0;
+  color: #8ff4ff;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+}
+
+/* form groups */
+.login-scene .login-scene__input-group {
+  position: relative;
+  margin-bottom: 28px;
+}
+
+.login-scene .login-scene__input-group input {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1.6px solid rgba(90,200,255,0.14);
+  outline: none;
+  color: #e6fbff;
+  font-size: 15px;
+  border-radius: 2px;
+}
+
+.login-scene .login-scene__input-group label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(200,240,255,0.45);
+  font-size: 13px;
+  transition: all .18s ease;
+  pointer-events: none;
+}
+
+.login-scene .login-scene__input-group input:focus + label,
+.login-scene .login-scene__input-group input:not(:placeholder-shown) + label {
+  top: -8px;
+  font-size: 12px;
+  color: #8ff4ff;
+}
+
+/* button */
+.login-scene .login-scene__login-box button {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(0,230,255,0.95), rgba(0,165,190,0.95));
+  border: none;
+  padding: 12px 14px;
+  color: #00121a;
+  font-weight: 700;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,200,255,0.12), inset 0 -2px 6px rgba(0,0,0,0.08);
+  transition: transform .16s ease, filter .18s;
+}
+
+.login-scene .login-scene__login-box button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.02);
+}
+
+.login-scene .login-scene__login-box button.loading {
+  opacity: 0.9;
+  transform: scale(.995);
+}
+
+/* responsive */
+@media (max-width: 880px) {
+  .login-scene .login-scene__holo-platform { width: 420px; height: 300px; }
+  .login-scene .login-scene__ring { width: 360px; height: 150px; }
+  .login-scene .login-scene__login-box { width: 320px; }
+  .login-scene .login-scene__padlock { width: 150px; height: 180px; }
+}
