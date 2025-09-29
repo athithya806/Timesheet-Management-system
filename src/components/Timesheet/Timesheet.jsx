@@ -109,9 +109,7 @@ const Timesheet = () => {
             <button className="btn light">
               <FileText size={16} /> Create Report
             </button>
-            <button className="btn light">
-              <Settings size={16} /> Setting
-            </button>
+          
           </div>
         </div>
 
@@ -130,10 +128,7 @@ const Timesheet = () => {
             <Search className="search-icon" size={18} />
             <input type="text" placeholder="Search employee" />
           </div>
-          <div className="actions">
-            <button className="btn outline">Remind Approvers</button>
-            <button className="btn primary">Send to Payroll</button>
-          </div>
+        
         </div>
 
         {/* Employee List */}
@@ -166,7 +161,6 @@ const Timesheet = () => {
                   <td>{emp.regular} Hours</td>
                   <td>{emp.overtime} Hours</td>
                   <td>{emp.sick} Hours</td>
-                  <td>{emp.pto}</td>
                   <td>{emp.holiday} Hours</td>
                   <td>{emp.total} Hours</td>
                 </tr>
