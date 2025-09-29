@@ -17,7 +17,7 @@ export default function LoginPage() {
     dx: 0,
     dy: 0,
   });
-
+gi
   useEffect(() => {
     const gridCanvas = gridRef.current;
     const partCanvas = particlesRef.current;
