@@ -30,12 +30,12 @@
   padding: 15px;
   border: 1px solid #ddd;
   margin-bottom: 20px;
+  gap: 15px;
 }
 .profile-pic {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  margin-right: 15px;
 }
 .profile-info h2 {
   font-size: 18px;
@@ -70,6 +70,8 @@
   height: 6px;
   background: #ddd;
   margin-bottom: 5px;
+  border-radius: 3px;
+  overflow: hidden;
 }
 .progress-bar .approved {
   background: #4caf50;
@@ -86,15 +88,9 @@
 .legend {
   margin-right: 15px;
 }
-.legend.green {
-  color: #4caf50;
-}
-.legend.red {
-  color: #f44336;
-}
-.legend.orange {
-  color: #f4b400;
-}
+.legend.green { color: #4caf50; }
+.legend.red { color: #f44336; }
+.legend.orange { color: #f4b400; }
 
 /* Tabs */
 .tabs {
@@ -178,12 +174,8 @@
   border-right: 1px solid #ddd;
   height: 30px;
 }
-.hour-cell.work {
-  background: #4caf50;
-}
-.hour-cell.break {
-  background: #f4b400;
-}
+.hour-cell.work { background: #4caf50; }
+.hour-cell.break { background: #f4b400; }
 .approval-cell {
   display: flex;
   justify-content: center;
@@ -200,72 +192,56 @@
   font-size: 18px;
   cursor: pointer;
 }
-.approve-btn {
-  color: #4caf50;
-}
-.reject-btn {
-  color: #f44336;
-}
-.edit-btn {
-  color: #555;
-}
+.edit-btn { color: #555; }
 
-/* Manual Edit Panel (Side Drawer) */
+/* Edit Panel */
+.edit-panel, .approval-drawer {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+  animation: slideIn 0.3s ease-in-out;
+  z-index: 1000;
+}
 .edit-panel {
   position: fixed;
   right: 0;
   top: 0;
-  width: 350px;
+  width: 360px;
   height: 100%;
-  background: #fff;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  animation: slideIn 0.3s ease-in-out;
-  z-index: 1000;
 }
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-.edit-header {
+.approval-drawer { width: 400px; position: fixed; right:0; top:0; height:100%; }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+.edit-header, .drawer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 15px;
   border-bottom: 1px solid #ddd;
 }
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 18px;
-  cursor: pointer;
-}
-.edit-content {
+.close-btn { background:none; border:none; font-size:18px; cursor:pointer; }
+
+.edit-content, .drawer-content {
   padding: 15px;
   flex: 1;
+  overflow-y: auto;
 }
-.field {
+
+.hour-block {
+  border: 1px solid #ddd;
+  padding: 10px;
   margin-bottom: 15px;
+  border-radius: 5px;
+  background: #f9f9f9;
 }
-.field label {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-.time-inputs input {
-  width: 80px;
-  margin-right: 5px;
-}
-textarea {
-  width: 100%;
-  height: 60px;
-}
-.edit-footer {
+.hour-block h4 { margin-bottom: 10px; font-size: 14px; }
+
+.field { margin-bottom: 12px; }
+.field label { display:block; font-size: 13px; margin-bottom:5px; }
+.field input, .field select { width: 100%; padding: 6px; border:1px solid #ccc; border-radius:4px; }
+
+.edit-footer, .drawer-footer {
   padding: 15px;
   border-top: 1px solid #ddd;
   display: flex;
@@ -276,6 +252,7 @@ textarea {
   padding: 6px 12px;
   border: 1px solid #ccc;
   background: #f3f3f3;
+  cursor:pointer;
 }
 .save-btn {
   padding: 6px 12px;
@@ -285,59 +262,11 @@ textarea {
   cursor: pointer;
 }
 
-/* Approval Drawer (Full-Screen Style) */
+/* Overlay */
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
   z-index: 900;
-}
-.approval-drawer {
-  position: fixed;
-  right: 0;
-  top: 0;
-  width: 400px;
-  height: 100%;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
-  z-index: 1001;
-  animation: slideIn 0.3s ease-in-out;
-}
-.drawer-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  border-bottom: 1px solid #ddd;
-}
-.drawer-content {
-  flex: 1;
-  padding: 15px;
-  overflow-y: auto;
-}
-.drawer-date {
-  font-weight: bold;
-  margin-bottom: 15px;
-}
-.hide-checkbox {
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.drawer-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  border-top: 1px solid #ddd;
-}
-.work-hours {
-  font-weight: bold;
-  font-size: 16px;
 }

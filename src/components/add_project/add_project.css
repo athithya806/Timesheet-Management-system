@@ -1,11 +1,11 @@
 /* Container */
 .form-container {
   max-width: 600px;
-  margin: 40px auto;
+  margin: 60px auto;
   background: #fff;
-  padding: 24px;
+  padding: 30px 24px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   font-family: "Inter", sans-serif;
 }
 
@@ -13,13 +13,13 @@
 .form-tabs {
   display: flex;
   border-bottom: 1px solid #e0e0e0;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .form-tab {
   flex: 1;
   text-align: center;
-  padding: 10px 0;
+  padding: 12px 0;
   font-size: 14px;
   font-weight: 500;
   color: #666;
@@ -33,21 +33,38 @@
   border-bottom: 2px solid #1976d2;
 }
 
+/* Form Column */
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* space between each field or row */
+}
+
+/* Form Row for side by side inputs */
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
 /* Form fields */
 .form-group {
-  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .form-label {
-  display: block;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: #333;
 }
 
 .form-input {
-  width: 100%;
+  width: 90%;
   padding: 10px 12px;
   font-size: 14px;
   border: 1px solid #ddd;
@@ -61,7 +78,7 @@
   box-shadow: 0 0 0 2px rgba(25,118,210,0.1);
 }
 
-/* Gender toggle */
+/* Status / toggle buttons */
 .gender-options {
   display: flex;
   gap: 10px;
@@ -88,27 +105,18 @@
 /* Actions */
 .form-actions {
   display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
+  justify-content: center;
+  margin-top: 30px;
 }
 
 .btn {
-  padding: 10px 20px;
+  padding: 10px 24px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   border: none;
   transition: background 0.2s ease;
-}
-
-.btn-secondary {
-  background: #f0f0f0;
-  color: #333;
-}
-
-.btn-secondary:hover {
-  background: #e0e0e0;
 }
 
 .btn-primary {
@@ -118,4 +126,11 @@
 
 .btn-primary:hover {
   background: #1259a8;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .form-row {
+    flex-direction: column;
+  }
 }

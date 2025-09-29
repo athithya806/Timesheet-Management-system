@@ -167,10 +167,8 @@ const EmployeeDetail = () => {
           {/* Rows */}
           {workSessions.map((session, index) => (
             <div className="timeline-row" key={index}>
-              {/* Date */}
               <div className="date-cell">{session.day}</div>
 
-              {/* Work hour cells */}
               {[...Array(9)].map((_, hour) => {
                 const currentHour = hour + 10;
                 const isWorkHour =
@@ -192,66 +190,85 @@ const EmployeeDetail = () => {
                 );
               })}
 
-              {/* Approval Buttons */}
-              <div className="approval-cell">
-                <button
-                  className="icon-btn approve-btn"
-                  onClick={() => approveSession(session.day)}
-                >
-                  ✔
-                </button>
-                <button
-                  className="icon-btn reject-btn"
-                  onClick={() => rejectSession(session.day)}
-                >
-                  ✖
-                </button>
-                <button
-                  className="icon-btn edit-btn"
-                  onClick={() => openApprovalDrawer(session.day)}
-                >
-                  ✎
-                </button>
-              </div>
+              <button
+                className="icon-btn edit-btn"
+                onClick={() => openApprovalDrawer(session.day)}
+              >
+                ✎
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Manual Time Edit Panel */}
+      {/* Manual Time Edit Panel replaced with hourly Project Fields */}
       {showEditPanel && (
         <div className="edit-panel">
           <div className="edit-header">
-            <h3>Edit Manual Time</h3>
+            <h3>Edit Projects</h3>
             <button className="close-btn" onClick={closeEditPanel}>
               ✖
             </button>
           </div>
           <div className="edit-content">
             <p className="date-label">{selectedDate}</p>
-            <div className="field">
-              <label>Regular Time</label>
-              <div className="time-inputs">
-                <input type="time" defaultValue="09:00" /> -
-                <input type="time" defaultValue="19:00" />
-              </div>
-            </div>
-            <div className="field">
-              <label>Meal Break</label>
-              <div className="time-inputs">
-                <input type="time" defaultValue="12:00" /> -
-                <input type="time" defaultValue="13:00" />
-              </div>
-            </div>
-            <div className="field">
-              <label>Overtime</label>
-              <button className="add-btn">+ Add Overtime</button>
-            </div>
-            <div className="field">
-              <label>Note</label>
-              <textarea placeholder="Write note"></textarea>
-            </div>
+
+            {/* Loop for each hour */}
+            {workSessions
+              .find((s) => s.day === selectedDate)
+              ?.start &&
+              [...Array(
+                workSessions.find((s) => s.day === selectedDate).end -
+                  workSessions.find((s) => s.day === selectedDate).start
+              )].map((_, i) => {
+                const session = workSessions.find((s) => s.day === selectedDate);
+                const startHour = session.start + i;
+                const endHour = startHour + 1;
+                return (
+                  <div key={i} className="hour-block">
+                    <h4>
+                      {startHour}:00 - {endHour}:00
+                    </h4>
+                    <div className="field">
+                      <label>Project Type</label>
+                      <select>
+                        <option value="">Select Type</option>
+                        <option value="Internal">Internal</option>
+                        <option value="Client">Client</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Project Category</label>
+                      <select>
+                        <option value="">Select Category</option>
+                        <option value="Development">Development</option>
+                        <option value="Testing">Testing</option>
+                        <option value="Research">Research</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Project Name</label>
+                      <input type="text" placeholder="Enter project name" />
+                    </div>
+                    <div className="field">
+                      <label>Project Phase</label>
+                      <select>
+                        <option value="">Select Phase</option>
+                        <option value="Planning">Planning</option>
+                        <option value="Execution">Execution</option>
+                        <option value="Review">Review</option>
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Project Task</label>
+                      <input type="text" placeholder="Enter task description" />
+                    </div>
+                    <hr />
+                  </div>
+                );
+              })}
           </div>
+
           <div className="edit-footer">
             <button className="cancel-btn" onClick={closeEditPanel}>
               Cancel
@@ -261,13 +278,13 @@ const EmployeeDetail = () => {
         </div>
       )}
 
-      {/* Approval Drawer */}
+      {/* Approval Drawer can be updated similarly */}
       {showApprovalDrawer && (
         <>
           <div className="overlay" onClick={closeApprovalDrawer}></div>
           <div className="approval-drawer">
             <div className="drawer-header">
-              <h3>Edit Manual Time</h3>
+              <h3>Edit Projects</h3>
               <button className="close-btn" onClick={closeApprovalDrawer}>
                 ✖
               </button>
@@ -275,44 +292,64 @@ const EmployeeDetail = () => {
             <div className="drawer-content">
               <p className="drawer-date">{selectedDate}</p>
 
-              <div className="field">
-                <label>Regular Time</label>
-                <div className="time-inputs">
-                  <input type="time" defaultValue="09:00" /> -
-                  <input type="time" defaultValue="19:00" />
-                </div>
-              </div>
-
-              <div className="field">
-                <label>Meal Break</label>
-                <div className="time-inputs">
-                  <input type="time" defaultValue="12:00" /> -
-                  <input type="time" defaultValue="13:00" />
-                </div>
-              </div>
-
-              <div className="field">
-                <label>Overtime</label>
-                <button className="add-btn">+ Add Overtime</button>
-              </div>
-
-              <div className="field">
-                <label>Double</label>
-                <button className="add-btn">+ Add Overtime</button>
-              </div>
-
-              <div className="field">
-                <label>Note</label>
-                <textarea placeholder="Write note"></textarea>
-              </div>
-
-              <label className="hide-checkbox">
-                <input type="checkbox" /> Hide from James Black
-              </label>
+              {workSessions
+                .find((s) => s.day === selectedDate)
+                ?.start &&
+                [...Array(
+                  workSessions.find((s) => s.day === selectedDate).end -
+                    workSessions.find((s) => s.day === selectedDate).start
+                )].map((_, i) => {
+                  const session = workSessions.find(
+                    (s) => s.day === selectedDate
+                  );
+                  const startHour = session.start + i;
+                  const endHour = startHour + 1;
+                  return (
+                    <div key={i} className="hour-block">
+                      <h4>
+                        {startHour}:00 - {endHour}:00
+                      </h4>
+                      <div className="field">
+                        <label>Project Type</label>
+                        <select>
+                          <option value="">Select Type</option>
+                          <option value="Internal">Internal</option>
+                          <option value="Client">Client</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Project Category</label>
+                        <select>
+                          <option value="">Select Category</option>
+                          <option value="Development">Development</option>
+                          <option value="Testing">Testing</option>
+                          <option value="Research">Research</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Project Name</label>
+                        <input type="text" placeholder="Enter project name" />
+                      </div>
+                      <div className="field">
+                        <label>Project Phase</label>
+                        <select>
+                          <option value="">Select Phase</option>
+                          <option value="Planning">Planning</option>
+                          <option value="Execution">Execution</option>
+                          <option value="Review">Review</option>
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Project Task</label>
+                        <input type="text" placeholder="Enter task description" />
+                      </div>
+                      <hr />
+                    </div>
+                  );
+                })}
             </div>
 
             <div className="drawer-footer">
-              <span className="work-hours">10:00:00</span>
               <div>
                 <button className="cancel-btn" onClick={closeApprovalDrawer}>
                   Cancel
