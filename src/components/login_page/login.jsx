@@ -6,7 +6,7 @@ export default function LoginPage() {
   const gridRef = useRef(null);
   const particlesRef = useRef(null);
   const rafRef = useRef(null);
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Removed duplicate declaration
   const [loading, setLoading] = useState(false);
   const speedMultiplier = useRef(1);
 
@@ -17,7 +17,66 @@ export default function LoginPage() {
     dx: 0,
     dy: 0,
   });
+ const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [members, setMembers] = useState([]);
+  const navigate = useNavigate();
 
+  // ✅ Fetch members from backend
+  useEffect(() => {
+    fetch("http://localhost:3001/api/members")
+      .then((res) => res.json())
+      .then((data) => setMembers(data))
+      .catch((err) => console.error("Failed to fetch members:", err));
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch("http://localhost:3001/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        alert(errorData.error || "Login failed");
+        return;
+      }
+
+      const data = await res.json();
+
+      // ✅ Store login info
+      localStorage.setItem("userEmail", data.email);
+      localStorage.setItem("userRole", data.role);
+
+      // ✅ Redirect based on role
+      // if (data.role === "admin") {
+      //   navigate("/dashboard/admin");
+      // }
+      if (data.role === "admin") {
+        navigate("/timesheet");
+      }
+      // else if (data.role === "employee") {
+      //   navigate("/dashboard");
+      // }
+      else if (data.role === "employee") {
+        navigate(`/employee/${data.employeeId}`);
+      } else if (data.role === "tl") {
+        navigate("/tldashboard");
+      } else if (data.role === "hr") {
+        navigate("/hr/dashboard");
+      } else if (data.role === "ceo") {
+        navigate("/ceo-dashboard");
+      }
+    } catch (err) {
+      alert("Login request failed: " + err.message);
+    }
+  };
   useEffect(() => {
     const gridCanvas = gridRef.current;
     const partCanvas = particlesRef.current;
@@ -181,12 +240,7 @@ export default function LoginPage() {
     };
   }, []);
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    setLoading(true);
-    speedMultiplier.current = 6;
-    setTimeout(() => navigate("/timesheet"), 700);
-  }
+
 
   return (
     <div className="login-scene">
@@ -214,13 +268,19 @@ export default function LoginPage() {
 
       <div className="login-scene__login-box">
         <h2>LoGIn</h2>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleLogin}>
           <div className="login-scene__input-group">
-            <input id="user" placeholder=" " required />
+            <input id="user" placeholder=" " required   value={email}   onChange={(e) => setEmail(e.target.value)}
+                fullWidth
+                size="small"/>
             <label htmlFor="user">Username</label>
           </div>
           <div className="login-scene__input-group">
-            <input id="pass" type="password" placeholder=" " required />
+            <input id="pass" type="password" placeholder=" "   label="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+                size="small" required />
             <label htmlFor="pass">Password</label>
           </div>
           <button type="submit" className={loading ? "loading" : ""}>
