@@ -1,28 +1,113 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import "./EmployeeDetail.css";
 
 const EmployeeDetail = () => {
   const { id } = useParams();
+
+  // State declarations
   const [activeTab, setActiveTab] = useState("timeline");
-  const [showEditPanel, setShowEditPanel] = useState(false); // Manual time panel
-  const [showApprovalDrawer, setShowApprovalDrawer] = useState(false); // Approval drawer
+  const [showEditPanel, setShowEditPanel] = useState(false);
+  const [showApprovalDrawer, setShowApprovalDrawer] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [approvalStatus, setApprovalStatus] = useState({}); // Track approvals per day
+  const [approvalStatus, setApprovalStatus] = useState({});
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [checkInOut, setCheckInOut] = useState({ checkIn: "", checkOut: "" });
+  const [employee, setEmployee] = useState({});
+  const [projects, setProjects] = useState([]);
+  
+  const [hourlyDetails, setHourlyDetails] = useState({});
+  const [formMode, setFormMode] = useState("");
 
-  const workSessions = [
-    { day: "Mon, 1st Jun", start: 10, end: 18, break: true },
-    { day: "Tue, 2nd Jun", start: 10, end: 18, break: true },
-    { day: "Wed, 3rd Jun", start: 10, end: 16, break: true },
-    { day: "Thu, 4th Jun", start: null, end: null },
-    { day: "Fri, 5th Jun", start: null, end: null },
-    { day: "Sat, 6th Jun", start: null, end: null },
-    { day: "Sun, 7th Jun", start: null, end: null },
-  ];
+  const [timecardData, setTimecardData] = useState([]);
+  // For editing hourly project fields, example initialized as empty object
+  const [editProjectsByHour, setEditProjectsByHour] = useState({});
 
-  // Manual edit panel
+  // Pad time utility
+  const padTime = (t) => (t && t.match(/^\d{2}:\d{2}$/) ? t + ":00" : t || "00:00:00");
+
+  // Convert hour range string to 24h integer hour
+  const parseHourKeyFromRange = (range) => {
+    const m = /^(\d{1,2})\s*(AM|PM)\s*-\s*/i.exec(range || "");
+    if (!m) return null;
+    let h = parseInt(m[1], 10);
+    const mer = m[2].toUpperCase();
+    if (mer === "PM" && h !== 12) h += 12;
+    if (mer === "AM" && h === 12) h = 24;
+    return h;
+  };
+
+  // Get all dates in selected month
+  const getAllDatesInMonth = (year, month) => {
+    const date = new Date(year, month, 1);
+    const result = [];
+    while (date.getMonth() === month) {
+      result.push(new Date(date));
+      date.setDate(date.getDate() + 1);
+    }
+    return result;
+  };
+  const daysInMonth = getAllDatesInMonth(selectedYear, selectedMonth);
+
+  // Formatters
+  const formatHour = (hour) => {
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour} ${suffix}`;
+  };
+
+  const formatDate = (date) => {
+    const d = date instanceof Date ? date : new Date(date);
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatHourRange = (h24) => {
+    const to12 = (h) => {
+      const mer = h >= 12 ? "PM" : "AM";
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12} ${mer}`;
+    };
+    return `${to12(h24)} - ${to12(h24 + 1)}`;
+  };
+  const getHourlySlots = () => {
+    if (!checkInOut.checkIn) return [];
+
+    const [startH] = checkInOut.checkIn.split(":").map(Number);
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    let slots = [];
+    let hour = startH;
+
+    while (slots.length < 9 && hour <= currentHour) {
+      if (hour === 13) {
+        // skip lunch
+        hour++;
+        continue;
+      }
+      slots.push(hour);
+      hour++;
+    }
+
+    return slots;
+  };
+  // Open/close panels
   const openEditPanel = (date) => {
     setSelectedDate(date);
+
+    // Initialize editProjectsByHour from hourlyDetails for selected date if available
+    const dayData = hourlyDetails[date] || {};
+    const initEdit = {};
+    for (let hour = 10; hour <= 18; hour++) {
+      if (hour === 13) continue;
+      initEdit[hour] = dayData[hour] || {};
+    }
+    setEditProjectsByHour(initEdit);
+
     setShowEditPanel(true);
   };
   const closeEditPanel = () => {
@@ -30,7 +115,6 @@ const EmployeeDetail = () => {
     setSelectedDate(null);
   };
 
-  // Approval drawer
   const openApprovalDrawer = (date) => {
     setSelectedDate(date);
     setShowApprovalDrawer(true);
@@ -40,7 +124,7 @@ const EmployeeDetail = () => {
     setSelectedDate(null);
   };
 
-  // Approve / Reject handlers
+  // Approve/Reject handlers
   const approveSession = (day) => {
     setApprovalStatus((prev) => ({ ...prev, [day]: "approved" }));
   };
@@ -48,13 +132,127 @@ const EmployeeDetail = () => {
     setApprovalStatus((prev) => ({ ...prev, [day]: "rejected" }));
   };
 
+  // Change handler example for hourly edit fields (expand as needed)
+  const handleProjectFieldChange = (hour, field, value) => {
+    setEditProjectsByHour((prev) => ({
+      ...prev,
+      [hour]: { ...prev[hour], [field]: value }
+    }));
+  };
+
+  // Save timesheet handler
+  const handleSaveTimesheet = async () => {
+    const date = selectedDate;
+    const status = formMode;
+    const checkIn = padTime(checkInOut.checkIn);
+    const checkOut = padTime(checkInOut.checkOut);
+    const overtime = parseFloat(overtimeHours) || 0;
+
+    // Compose hourBlocks from editProjectsByHour state
+    const hourBlocks = Object.entries(editProjectsByHour)
+      .filter(([hour]) => parseInt(hour, 10) !== 13)
+      .map(([hour, details]) => ({
+        hour: formatHourRange(parseInt(hour, 10)),
+        projectType: details.projectType || "",
+        projectCategory: details.projectCategory || "",
+        projectName: details.projectName || "",
+        projectPhase: details.projectPhase || "",
+        projectTask: details.projectTask || ""
+      }));
+
+    const email = localStorage.getItem("userEmail");
+
+    const body = {
+      date,
+      checkIn,
+      checkOut,
+      overtime,
+      status,
+      hourBlocks,
+      email,
+    };
+
+    try {
+      const response = await fetch("http://localhost:3001/addHourDetail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert("✅ Timesheet saved successfully!");
+        closeEditPanel();
+      } else {
+        alert("❌ Error: " + (result.error || "Could not save"));
+      }
+    } catch (e) {
+      console.error("Save failed:", e);
+      alert("⚠️ Network error! Please try again.");
+    }
+  };
+
+  // Data fetching effects (unchanged)
+  useEffect(() => {
+    fetch("http://localhost:3001/getProjects")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setProjects(data);
+        }
+      })
+      .catch((err) => console.error("Error fetching projects:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!employee?.id) return;
+    fetch(
+      `http://localhost:3001/getHourDetailsByMonth?year=${selectedYear}&month=${selectedMonth}&memberId=${employee.id}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setTimecardData(data.data);
+          // prepare hourlyDetails for quick lookup
+          const byDate = {};
+          data.data.forEach((entry) => {
+            byDate[formatDate(entry.date)] = JSON.parse(entry.hourBlocks || "[]");
+          });
+          setHourlyDetails(byDate);
+        }
+      })
+      .catch((err) => console.error("Fetch error:", err));
+  }, [employee, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail");
+    if (!email) return;
+    fetch(`http://localhost:3001/api/members/byEmail?email=${email}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setEmployee(data.data);
+      })
+      .catch((err) => console.error("Error fetching employee by email:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!id) return;
+    fetch(`http://localhost:3001/api/members/${id}`)
+      .then((res) => res.json())
+      .then((member) => {
+        if (Array.isArray(member) && member.length > 0) {
+          setEmployee(member[0]);
+        } else if (member && member.id) {
+          setEmployee(member);
+        }
+      })
+      .catch((err) => console.error("Error fetching employee:", err));
+  }, [id]);
+
   return (
     <div className="employee-detail-container">
       {/* Header */}
       <div className="header">
-        <Link to="/" className="back-link">
-          ← Back
-        </Link>
+        <Link to="/" className="back-link">← Back</Link>
         <h1>Time & Attendance</h1>
       </div>
 
@@ -62,51 +260,67 @@ const EmployeeDetail = () => {
       <div className="profile-section">
         <img
           src="https://via.placeholder.com/60"
-          alt="Employee"
+          alt={employee.name || "Employee"}
           className="profile-pic"
         />
         <div className="profile-info">
-          <h2>Ralph Edwards</h2>
-          <p className="role">Product Designer • Hourly</p>
+          <h2>{employee.name || "Name not loaded"}</h2>
+          <p className="role">{employee.role || "Role not loaded"}</p>
         </div>
         <div className="hours-summary">
-          <p className="total">264 hrs Total</p>
-          <p>172 hrs Regular</p>
-          <p>24 hrs Overtime</p>
-          <p>20 hrs Holiday</p>
+          <p className="total">{employee.totalHours || 0} hrs Total</p>
+          <p>{employee.regularHours || 0} hrs Regular</p>
+          <p>{employee.overtimeHours || 0} hrs Overtime</p>
+          <p>{employee.holidayHours || 0} hrs Holiday</p>
         </div>
       </div>
 
       {/* Progress Bar */}
       <div className="progress-section">
-        <p className="progress-text">Hour breakdown: 264 hrs</p>
+        <p className="progress-text">Hour breakdown: {employee.totalHours || 0} hrs</p>
         <div className="progress-bar">
           <div className="approved" style={{ width: "70%" }}></div>
           <div className="overtime" style={{ width: "20%" }}></div>
           <div className="pending" style={{ width: "10%" }}></div>
         </div>
         <div className="progress-legend">
-          <span className="legend green">Approved: 132 hrs</span>
-          <span className="legend red">Overtime: 40 hrs</span>
-          <span className="legend orange">Pending: 10 hrs</span>
+          <span className="legend green">Approved: {employee.approvedHours || 0} hrs</span>
+          <span className="legend red">Overtime: {employee.overtimeHours || 0} hrs</span>
+          <span className="legend orange">Pending: {employee.pendingHours || 0} hrs</span>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="tabs">
-        <button
-          className={`tab ${activeTab === "timecard" ? "active" : ""}`}
-          onClick={() => setActiveTab("timecard")}
-        >
+        <button className={`tab ${activeTab === "timecard" ? "active" : ""}`} onClick={() => setActiveTab("timecard")}>
           Timecard
         </button>
-        <button
-          className={`tab ${activeTab === "timeline" ? "active" : ""}`}
-          onClick={() => setActiveTab("timeline")}
-        >
+        <button className={`tab ${activeTab === "timeline" ? "active" : ""}`} onClick={() => setActiveTab("timeline")}>
           Timeline
         </button>
       </div>
+          <div className="month-selector">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i} value={i}>
+                    {new Date(0, i).toLocaleString("default", { month: "long" })}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 16 }, (_, i) => (
+                  <option key={i} value={2020 + i}>
+                    {2020 + i}
+                  </option>
+                ))}
+              </select>
+            </div>
 
       {/* Actions */}
       <div className="actions">
@@ -133,229 +347,205 @@ const EmployeeDetail = () => {
               </tr>
             </thead>
             <tbody>
-              {workSessions.map((session, index) => (
-                <tr
-                  key={index}
-                  className="clickable-row"
-                  onClick={() => openEditPanel(session.day)}
-                >
-                  <td>{session.day}</td>
-                  <td>{session.start ? `${session.start}:00 AM` : "-"}</td>
-                  <td>{session.end ? `${session.end}:00 PM` : "-"}</td>
-                  <td>{session.break ? "1 hr" : "-"}</td>
-                  <td>{session.start && session.end ? "8 hrs" : "-"}</td>
-                  <td>{approvalStatus[session.day] || "-"}</td>
-                </tr>
-              ))}
+              {/* You should render your timecard rows here, e.g.:
+                  {timecardData.map((row, idx) => (
+                    <tr key={idx}>
+                      <td>{formatDate(row.date)}</td>
+                      <td>{row.checkIn}</td>
+                      <td>{row.checkOut}</td>
+                      <td>{row.mealBreak}</td>
+                      <td>{row.workHours}</td>
+                      <td>{row.approval}</td>
+                    </tr>
+                  ))}
+              */}
             </tbody>
           </table>
         </div>
-      ) : (
-        /* Timeline View */
+      ) : activeTab === "timeline" ? (
         <div className="timeline-view">
-          {/* Header */}
           <div className="timeline-header">
             <div className="date-cell">Date</div>
             {[...Array(9)].map((_, i) => (
-              <div className="hour-label" key={i}>
-                {i + 10} AM
+              <div key={i} className="hour-label">
+                {formatHour(i + 10)} - {formatHour(i + 11)}
               </div>
             ))}
-            <div className="approval-cell">Approval</div>
+            <div className="approval-cell">Edit</div>
           </div>
 
-          {/* Rows */}
-          {workSessions.map((session, index) => (
-            <div className="timeline-row" key={index}>
-              <div className="date-cell">{session.day}</div>
+          {daysInMonth.map((date, index) => {
+            const formatted = formatDate(date);
+            const entry = timecardData.find((d) => formatDate(d.date) === formatted);
+            const hourBlocks = entry ? JSON.parse(entry.hourBlocks || "[]") : [];
 
-              {[...Array(9)].map((_, hour) => {
-                const currentHour = hour + 10;
-                const isWorkHour =
-                  session.start !== null &&
-                  session.end !== null &&
-                  currentHour >= session.start &&
-                  currentHour < session.end;
+            return (
+              <div className="timeline-row" key={index}>
+                <div className="date-cell">{formatted}</div>
 
-                const isBreak =
-                  session.break && currentHour === 12; // 12-1 break
+                {[...Array(9)].map((_, hourIdx) => {
+                  const hour = 10 + hourIdx;
+                  const block = hourBlocks.find(
+                    (b) =>
+                      b.hour === formatHourRange(hour) ||
+                      (b.hourKey && b.hourKey === hour) ||
+                      (typeof b.hour === "string" && parseHourKeyFromRange(b.hour) === hour)
+                  );
 
-                return (
-                  <div
-                    key={hour}
-                    className={`hour-cell ${
-                      isWorkHour ? (isBreak ? "break" : "work") : ""
-                    }`}
-                  ></div>
-                );
-              })}
+                  const status = entry?.status || "Work";
+                  const isLeave = status === "Leave";
+                  const isFilled =
+                    block &&
+                    (block.projectType ||
+                      block.projectCategory ||
+                      block.projectName ||
+                      block.projectPhase ||
+                      block.projectTask);
 
-              <button
-                className="icon-btn edit-btn"
-                onClick={() => openApprovalDrawer(session.day)}
-              >
-                ✎
-              </button>
-            </div>
-          ))}
+                  let colorClass = "";
+                  if (hour === 13) colorClass = "break";
+                  else if (isLeave) colorClass = "leave";
+                  else if (isFilled) colorClass = "work";
+
+                  return (
+                    <div
+                      key={hourIdx}
+                      className={`hour-cell ${colorClass}`}
+                      title={
+                        isLeave
+                          ? "Leave"
+                          : hour === 13
+                          ? "Lunch Break"
+                          : isFilled
+                          ? `${block.projectName || "-"} (${block.projectPhase || "-"})`
+                          : ""
+                      }
+                    />
+                  );
+                })}
+
+                <div className="approval-cell">
+                  <button className="icon-btn edit-btn" onClick={() => openEditPanel(formatted)}>
+                    ✎
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="legend-container">
+            <span className="legend-box work" /> Work
+            <span className="legend-box leave" /> Leave
+            <span className="legend-box break" /> Lunch Break
+          </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Manual Time Edit Panel replaced with hourly Project Fields */}
+      {/* Manual Time Edit Panel - Hourly Project Fields */}
       {showEditPanel && (
         <div className="edit-panel">
           <div className="edit-header">
             <h3>Edit Projects</h3>
-            <button className="close-btn" onClick={closeEditPanel}>
-              ✖
-            </button>
+            <button className="close-btn" onClick={closeEditPanel}>✖</button>
           </div>
           <div className="edit-content">
             <p className="date-label">{selectedDate}</p>
 
-            {/* Loop for each hour */}
-            {workSessions
-              .find((s) => s.day === selectedDate)
-              ?.start &&
-              [...Array(
-                workSessions.find((s) => s.day === selectedDate).end -
-                  workSessions.find((s) => s.day === selectedDate).start
-              )].map((_, i) => {
-                const session = workSessions.find((s) => s.day === selectedDate);
-                const startHour = session.start + i;
-                const endHour = startHour + 1;
-                return (
-                  <div key={i} className="hour-block">
-                    <h4>
-                      {startHour}:00 - {endHour}:00
-                    </h4>
-                    <div className="field">
-                      <label>Project Type</label>
-                      <select>
-                        <option value="">Select Type</option>
-                        <option value="Internal">Internal</option>
-                        <option value="Client">Client</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Project Category</label>
-                      <select>
-                        <option value="">Select Category</option>
-                        <option value="Development">Development</option>
-                        <option value="Testing">Testing</option>
-                        <option value="Research">Research</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Project Name</label>
-                      <input type="text" placeholder="Enter project name" />
-                    </div>
-                    <div className="field">
-                      <label>Project Phase</label>
-                      <select>
-                        <option value="">Select Phase</option>
-                        <option value="Planning">Planning</option>
-                        <option value="Execution">Execution</option>
-                        <option value="Review">Review</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Project Task</label>
-                      <input type="text" placeholder="Enter task description" />
-                    </div>
-                    <hr />
-                  </div>
-                );
-              })}
-          </div>
+            {[...Array(9)].map((_, i) => {
+              const startHour = 10 + i;
+              const endHour = startHour + 1;
+              const project = editProjectsByHour[startHour] || {};
 
+              return (
+                <div key={i} className="hour-block">
+                  <h4>{startHour}:00 - {endHour}:00</h4>
+
+                  <div className="field">
+                    <label>Project Type</label>
+                    <select
+                      value={project.projectType || ""}
+                      onChange={(e) => handleProjectFieldChange(startHour, "projectType", e.target.value)}
+                    >
+                      <option value="">Select Type</option>
+                      <option value="Internal">Internal</option>
+                      <option value="Client">Client</option>
+                    </select>
+                  </div>
+
+                  <div className="field">
+                    <label>Project Category</label>
+                    <select
+                      value={project.projectCategory || ""}
+                      onChange={(e) => handleProjectFieldChange(startHour, "projectCategory", e.target.value)}
+                    >
+                      <option value="">Select Category</option>
+                      <option value="Development">Development</option>
+                      <option value="Testing">Testing</option>
+                      <option value="Research">Research</option>
+                    </select>
+                  </div>
+
+                  <div className="field">
+                    <label>Project Name</label>
+                    <input
+                      type="text"
+                      placeholder="Enter project name"
+                      value={project.projectName || ""}
+                      onChange={(e) => handleProjectFieldChange(startHour, "projectName", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label>Project Phase</label>
+                    <select
+                      value={project.projectPhase || ""}
+                      onChange={(e) => handleProjectFieldChange(startHour, "projectPhase", e.target.value)}
+                    >
+                      <option value="">Select Phase</option>
+                      <option value="Planning">Planning</option>
+                      <option value="Execution">Execution</option>
+                      <option value="Review">Review</option>
+                    </select>
+                  </div>
+
+                  <div className="field">
+                    <label>Project Task</label>
+                    <input
+                      type="text"
+                      placeholder="Enter task description"
+                      value={project.projectTask || ""}
+                      onChange={(e) => handleProjectFieldChange(startHour, "projectTask", e.target.value)}
+                    />
+                  </div>
+
+                  <hr />
+                </div>
+              );
+            })}
+          </div>
           <div className="edit-footer">
-            <button className="cancel-btn" onClick={closeEditPanel}>
-              Cancel
-            </button>
-            <button className="save-btn">Save</button>
+            <button className="cancel-btn" onClick={closeEditPanel}>Cancel</button>
+            <button className="save-btn" onClick={handleSaveTimesheet}>Save</button>
           </div>
         </div>
       )}
 
-      {/* Approval Drawer can be updated similarly */}
+      {/* Approval Drawer - Add similar handlers and controlled inputs if needed */}
       {showApprovalDrawer && (
         <>
           <div className="overlay" onClick={closeApprovalDrawer}></div>
           <div className="approval-drawer">
             <div className="drawer-header">
               <h3>Edit Projects</h3>
-              <button className="close-btn" onClick={closeApprovalDrawer}>
-                ✖
-              </button>
+              <button className="close-btn" onClick={closeApprovalDrawer}>✖</button>
             </div>
             <div className="drawer-content">
               <p className="drawer-date">{selectedDate}</p>
-
-              {workSessions
-                .find((s) => s.day === selectedDate)
-                ?.start &&
-                [...Array(
-                  workSessions.find((s) => s.day === selectedDate).end -
-                    workSessions.find((s) => s.day === selectedDate).start
-                )].map((_, i) => {
-                  const session = workSessions.find(
-                    (s) => s.day === selectedDate
-                  );
-                  const startHour = session.start + i;
-                  const endHour = startHour + 1;
-                  return (
-                    <div key={i} className="hour-block">
-                      <h4>
-                        {startHour}:00 - {endHour}:00
-                      </h4>
-                      <div className="field">
-                        <label>Project Type</label>
-                        <select>
-                          <option value="">Select Type</option>
-                          <option value="Internal">Internal</option>
-                          <option value="Client">Client</option>
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>Project Category</label>
-                        <select>
-                          <option value="">Select Category</option>
-                          <option value="Development">Development</option>
-                          <option value="Testing">Testing</option>
-                          <option value="Research">Research</option>
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>Project Name</label>
-                        <input type="text" placeholder="Enter project name" />
-                      </div>
-                      <div className="field">
-                        <label>Project Phase</label>
-                        <select>
-                          <option value="">Select Phase</option>
-                          <option value="Planning">Planning</option>
-                          <option value="Execution">Execution</option>
-                          <option value="Review">Review</option>
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>Project Task</label>
-                        <input type="text" placeholder="Enter task description" />
-                      </div>
-                      <hr />
-                    </div>
-                  );
-                })}
+              {/* Similar structure as edit panel if needed */}
             </div>
-
             <div className="drawer-footer">
-              <div>
-                <button className="cancel-btn" onClick={closeApprovalDrawer}>
-                  Cancel
-                </button>
-                <button className="save-btn">Save</button>
-              </div>
+              <button className="cancel-btn" onClick={closeApprovalDrawer}>Cancel</button>
+              <button className="save-btn">Save</button>
             </div>
           </div>
         </>
