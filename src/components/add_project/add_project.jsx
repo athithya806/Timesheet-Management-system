@@ -9,14 +9,69 @@ const AddProject = () => {
   const [plannedEndDate, setPlannedEndDate] = useState("");
   const [actualStartDate, setActualStartDate] = useState("");
   const [actualEndDate, setActualEndDate] = useState("");
-  const [assignedMembers, setAssignedMembers] = useState("");
+  const [assignedMembers, setAssignedMembers] = useState([]);
   const [projectType, setProjectType] = useState("billable");
+  const [phases, setPhases] = useState([]);
+
+  const [members, setMembers] = useState([]);
+  const [filteredMembers, setFilteredMembers] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/members");
+        if (!res.ok) throw new Error("Failed to fetch members");
+        const data = await res.json();
+        setMembers(data);
+      } catch (err) {
+        console.error("❌ Error fetching members:", err);
+      }
+    };
+    fetchMembers();
+  }, []);
+
+  const handleMemberChange = (e) => {
+    const value = e.target.value;
+    setSearchInput(value);
+
+    if (!value.trim()) {
+      setFilteredMembers([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    // Filter by names that start with the input string
+    const filtered = members
+      .filter(
+        (m) =>
+          m.fullName &&
+          m.fullName.toLowerCase().startsWith(value.toLowerCase()) && // Changed to startsWith
+          !assignedMembers.includes(m.fullName)
+      )
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+    setFilteredMembers(filtered);
+    setShowDropdown(true);
+  };
+
+  const handleSelectMember = (fullName) => {
+    if (!assignedMembers.includes(fullName)) {
+      setAssignedMembers([...assignedMembers, fullName]);
+    }
+    setSearchInput("");
+    setShowDropdown(false);
+  };
+
+  const handleRemoveMember = (fullName) => {
+    setAssignedMembers(assignedMembers.filter((m) => m !== fullName));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!projectName || !description) {
-      alert("Please fill in all required fields");
+      alert("Please fill in required fields");
       return;
     }
 
@@ -24,12 +79,13 @@ const AddProject = () => {
       projectName,
       projectType,
       description,
-      plannedStartDate,
-      plannedEndDate,
+      plannedStartDate: plannedStartDate || null,
+      plannedEndDate: plannedEndDate || null,
       actualStartDate: actualStartDate || null,
       actualEndDate: actualEndDate || null,
-      assignedMembers,
-      status,
+      assignedMembers: assignedMembers || [],
+      status: status || "ongoing",
+      phases: phases || [],
     };
 
     try {
@@ -55,8 +111,9 @@ const AddProject = () => {
       setPlannedEndDate("");
       setActualStartDate("");
       setActualEndDate("");
-      setAssignedMembers("");
+      setAssignedMembers([]);
       setProjectType("billable");
+      setPhases([]);
     } catch (err) {
       alert("❌ " + err.message);
     }
@@ -69,7 +126,6 @@ const AddProject = () => {
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* Row 1: Project Name | Project Type */}
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Project Name</label>
@@ -90,26 +146,48 @@ const AddProject = () => {
               onChange={(e) => setProjectType(e.target.value)}
               required
             >
-              <option value="">Select Type</option>
               <option value="billable">Billable</option>
               <option value="internal">Internal</option>
             </select>
           </div>
         </div>
 
-        {/* Client Name / Assigned Members */}
         <div className="form-group">
           <label className="form-label">Assign Members</label>
-          <input
-            className="form-input"
-            type="text"
-            placeholder="Enter team members"
-            value={assignedMembers}
-            onChange={(e) => setAssignedMembers(e.target.value)}
-          />
+          <div className="multi-select-container">
+            <div className="selected-chips">
+              {assignedMembers.map((m) => (
+                <span key={m} className="chip">
+                  {m}
+                  <button
+                    type="button"
+                    className="chip-close"
+                    onClick={() => handleRemoveMember(m)}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              className="form-input"
+              type="text"
+              placeholder="Type to search members..."
+              value={searchInput}
+              onChange={handleMemberChange}
+            />
+            {showDropdown && filteredMembers.length > 0 && (
+              <ul className="dropdown">
+                {filteredMembers.map((m) => (
+                  <li key={m.id} onClick={() => handleSelectMember(m.fullName)}>
+                    {m.fullName}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
-        {/* Description */}
         <div className="form-group">
           <label className="form-label">Project Description</label>
           <textarea
@@ -122,7 +200,6 @@ const AddProject = () => {
           />
         </div>
 
-        {/* Row 2: Planned Start/End */}
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Planned Start Date</label>
@@ -144,7 +221,6 @@ const AddProject = () => {
           </div>
         </div>
 
-        {/* Row 3: Actual Start/End */}
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Actual Start Date</label>
@@ -166,7 +242,6 @@ const AddProject = () => {
           </div>
         </div>
 
-        {/* Status buttons */}
         <div className="form-group">
           <label className="form-label">Status</label>
           <div className="gender-options">
@@ -194,7 +269,6 @@ const AddProject = () => {
           </div>
         </div>
 
-        {/* Submit */}
         <div className="form-actions">
           <button className="btn btn-primary" type="submit">
             Add Project
