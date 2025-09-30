@@ -72,6 +72,10 @@ app.delete("/deleteProject/:project_id", deleteProject(db));
 app.get("/getHourDetailsByMonthForCeo", getHourDetailsByMonthForCeo(db));
 app.post("/forgot-password", requestPasswordReset(db));
 app.post("/reset-password", resetPassword(db));
+// GET server date
+app.get("/serverDate", (req, res) => {
+  res.json({ date: new Date().toISOString() });
+});
 
 const PORT = 3001;
 app.listen(PORT, () => {

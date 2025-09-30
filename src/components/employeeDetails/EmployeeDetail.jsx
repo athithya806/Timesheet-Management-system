@@ -11,12 +11,14 @@ const EmployeeDetail = () => {
   const [showApprovalDrawer, setShowApprovalDrawer] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [approvalStatus, setApprovalStatus] = useState({});
+  const [overtime, setOvertimeHours] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [checkInOut, setCheckInOut] = useState({ checkIn: "", checkOut: "" });
   const [employee, setEmployee] = useState({});
   const [projects, setProjects] = useState([]);
-  
+  const [serverToday, setServerToday] = useState(null);
+
   const [hourlyDetails, setHourlyDetails] = useState({});
   const [formMode, setFormMode] = useState("");
 
@@ -38,6 +40,22 @@ const EmployeeDetail = () => {
     return h;
   };
 
+  const updateHourDetail = (hour, key, value) => {
+    setHourlyDetails((prev) => {
+      const currentDay = prev[selectedDate] || {};
+      const currentHour = currentDay[hour] || {};
+      return {
+        ...prev,
+        [selectedDate]: {
+          ...currentDay,
+          [hour]: {
+            ...currentHour,
+            [key]: value,
+          },
+        },
+      };
+    });
+  };
   // Get all dates in selected month
   const getAllDatesInMonth = (year, month) => {
     const date = new Date(year, month, 1);
@@ -73,43 +91,109 @@ const EmployeeDetail = () => {
     };
     return `${to12(h24)} - ${to12(h24 + 1)}`;
   };
-  const getHourlySlots = () => {
-    if (!checkInOut.checkIn) return [];
+const getHourlySlots = () => {
+  if (!checkInOut.checkIn) return [];
 
-    const [startH] = checkInOut.checkIn.split(":").map(Number);
-    const now = new Date();
-    const currentHour = now.getHours();
+  const [startH] = checkInOut.checkIn.split(":").map(Number);
+  const now = new Date();
+  const currentHour = now.getHours();
 
-    let slots = [];
-    let hour = startH;
+  const slots = [];
+  let hour = startH;
 
-    while (slots.length < 9 && hour <= currentHour) {
-      if (hour === 13) {
-        // skip lunch
-        hour++;
-        continue;
-      }
-      slots.push(hour);
+  while (slots.length < 9 && hour <= currentHour) {
+    if (hour === 13) {
+      // Skip lunch hour
       hour++;
+      continue;
     }
+    slots.push(hour);
+    hour++;
+  }
 
-    return slots;
-  };
+  return slots;
+};
+
   // Open/close panels
-  const openEditPanel = (date) => {
-    setSelectedDate(date);
+const openEditPanel = (date) => {
+  if (!serverToday) {
+    alert("⚠️ Server date not loaded yet. Please try again.");
+    return;
+  }
 
-    // Initialize editProjectsByHour from hourlyDetails for selected date if available
-    const dayData = hourlyDetails[date] || {};
-    const initEdit = {};
-    for (let hour = 10; hour <= 18; hour++) {
-      if (hour === 13) continue;
-      initEdit[hour] = dayData[hour] || {};
+  // Ensure we have a Date object
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  // Normalize dates (ignore hours/minutes/seconds)
+  const today = new Date(serverToday); // ✅ use server date, not client date
+  today.setHours(0, 0, 0, 0);
+
+  const twoWeeksAgo = new Date(today);
+  twoWeeksAgo.setDate(today.getDate() - 14);
+  twoWeeksAgo.setHours(0, 0, 0, 0);
+
+  // Future date check
+  if (dateObj > today) {
+    alert("⚠️ Future dates are not allowed!");
+    return;
+  }
+
+  // Past date limit (only 2 weeks)
+  if (dateObj < twoWeeksAgo) {
+    alert("⚠️ You can only edit timesheets from the past 2 weeks!");
+    return;
+  }
+
+  // Format date as string for state
+  const formatted = formatDate(dateObj);
+  setSelectedDate(formatted);
+
+  // Find existing timecard entry
+  const entry = timecardData.find((d) => formatDate(d.date) === formatted);
+
+  if (entry) {
+    // Populate check-in/out and overtime
+    setCheckInOut({
+      checkIn: entry.checkIn || "",
+      checkOut: entry.checkOut || "",
+    });
+    setOvertimeHours(entry.overtime || 0);
+    setFormMode(entry.status || "Work");
+
+    // Parse hourly blocks
+    try {
+      const parsed = JSON.parse(entry.hourBlocks || "[]");
+      const mapped = {};
+      parsed.forEach((block) => {
+        const key = parseHourKeyFromRange(block.hour);
+        if (key == null) return;
+        mapped[key] = {
+          type: block.projectType || "",
+          category: block.projectCategory || "",
+          name: block.projectName || "",
+          phase: block.projectPhase || "",
+          task: block.projectTask || "",
+        };
+      });
+      setHourlyDetails((prev) => ({ ...prev, [formatted]: mapped }));
+    } catch (err) {
+      console.error("Error parsing hourBlocks:", err);
+      setHourlyDetails((prev) => ({ ...prev, [formatted]: {} }));
     }
-    setEditProjectsByHour(initEdit);
+  } else {
+    // New entry
+    setCheckInOut({ checkIn: "", checkOut: "" });
+    setOvertimeHours(0);
+    setFormMode("Work");
+    setHourlyDetails((prev) => ({ ...prev, [formatted]: {} }));
+  }
 
-    setShowEditPanel(true);
-  };
+  // Open edit panel
+  setShowEditPanel(true);
+};
+
+
+
   const closeEditPanel = () => {
     setShowEditPanel(false);
     setSelectedDate(null);
@@ -124,13 +208,6 @@ const EmployeeDetail = () => {
     setSelectedDate(null);
   };
 
-  // Approve/Reject handlers
-  const approveSession = (day) => {
-    setApprovalStatus((prev) => ({ ...prev, [day]: "approved" }));
-  };
-  const rejectSession = (day) => {
-    setApprovalStatus((prev) => ({ ...prev, [day]: "rejected" }));
-  };
 
   // Change handler example for hourly edit fields (expand as needed)
   const handleProjectFieldChange = (hour, field, value) => {
@@ -139,14 +216,35 @@ const EmployeeDetail = () => {
       [hour]: { ...prev[hour], [field]: value }
     }));
   };
-
+  const taskOptions = {
+    Software: {
+      Design: ["POC", "Architecture", "UI/UX"],
+      Development: ["Frontend", "Backend", "Parameter Tuning"],
+      Testing: ["Unit Testing", "System Testing"],
+      Release: ["Configuration Management", "Deploy"],
+      "Bug Fix": ["Error", "New Feature"],
+    },
+    Engineering: {
+      Design: ["Blueprint", "Simulation"],
+      Development: ["Prototype", "Fabrication"],
+      Testing: ["Load Testing", "Field Testing"],
+      Release: ["Handover", "Maintenance"],
+      "Bug Fix": ["Repair", "Upgrade"],
+    },
+    Training: {
+      Design: ["Curriculum Design"],
+      Development: ["Material Preparation"],
+      Testing: ["Mock Sessions"],
+      Release: ["Delivery"],
+      "Bug Fix": ["Content Update"],
+    },
+  };
   // Save timesheet handler
   const handleSaveTimesheet = async () => {
     const date = selectedDate;
     const status = formMode;
     const checkIn = padTime(checkInOut.checkIn);
     const checkOut = padTime(checkInOut.checkOut);
-    const overtime = parseFloat(overtimeHours) || 0;
 
     // Compose hourBlocks from editProjectsByHour state
     const hourBlocks = Object.entries(editProjectsByHour)
@@ -190,6 +288,17 @@ const EmployeeDetail = () => {
       alert("⚠️ Network error! Please try again.");
     }
   };
+  useEffect(() => {
+    fetch("http://localhost:3001/serverDate")
+      .then((res) => res.json())
+      .then((data) => {
+        const srvDate = new Date(data.date);
+        srvDate.setHours(0, 0, 0, 0); // normalize to midnight
+        setServerToday(srvDate);
+      })
+      .catch((err) => console.error("Failed to fetch server date:", err));
+  }, []);
+
 
   // Data fetching effects (unchanged)
   useEffect(() => {
@@ -249,6 +358,7 @@ const EmployeeDetail = () => {
   }, [id]);
 
   return (
+    
     <div className="employee-detail-container">
       {/* Header */}
       <div className="header">
@@ -442,93 +552,142 @@ const EmployeeDetail = () => {
       ) : null}
 
       {/* Manual Time Edit Panel - Hourly Project Fields */}
-      {showEditPanel && (
-        <div className="edit-panel">
-          <div className="edit-header">
-            <h3>Edit Projects</h3>
-            <button className="close-btn" onClick={closeEditPanel}>✖</button>
-          </div>
-          <div className="edit-content">
-            <p className="date-label">{selectedDate}</p>
+{showEditPanel && (
+  <div className="edit-panel">
+    <div className="edit-header">
+      <h3>Edit Projects</h3>
+      <button className="close-btn" onClick={closeEditPanel}>✖</button>
+    </div>
 
-            {[...Array(9)].map((_, i) => {
-              const startHour = 10 + i;
-              const endHour = startHour + 1;
-              const project = editProjectsByHour[startHour] || {};
+    <div className="edit-content">
+      <p className="date-label">{selectedDate}</p>
 
-              return (
-                <div key={i} className="hour-block">
-                  <h4>{startHour}:00 - {endHour}:00</h4>
+      {/* Global fields, only ONCE */}
+      <div className="field">
+        <label>Check-In Time</label>
+        <input
+          type="time"
+          value={checkInOut.checkIn}
+          onChange={e => setCheckInOut(prev => ({ ...prev, checkIn: e.target.value }))}
+        />
+      </div>
+      <div className="field">
+        <label>Check-Out Time</label>
+        <input
+          type="time"
+          value={checkInOut.checkOut}
+          onChange={e => setCheckInOut(prev => ({ ...prev, checkOut: e.target.value }))}
+        />
+      </div>
 
-                  <div className="field">
-                    <label>Project Type</label>
-                    <select
-                      value={project.projectType || ""}
-                      onChange={(e) => handleProjectFieldChange(startHour, "projectType", e.target.value)}
-                    >
-                      <option value="">Select Type</option>
-                      <option value="Internal">Internal</option>
-                      <option value="Client">Client</option>
-                    </select>
-                  </div>
+      <div className="field">
+        <label>Global Status</label>
+        <select value={formMode} onChange={e => setFormMode(e.target.value)}>
+          <option value="Work">Work</option>
+          <option value="Leave">Leave</option>
+        </select>
+      </div>
 
-                  <div className="field">
-                    <label>Project Category</label>
-                    <select
-                      value={project.projectCategory || ""}
-                      onChange={(e) => handleProjectFieldChange(startHour, "projectCategory", e.target.value)}
-                    >
-                      <option value="">Select Category</option>
-                      <option value="Development">Development</option>
-                      <option value="Testing">Testing</option>
-                      <option value="Research">Research</option>
-                    </select>
-                  </div>
+      {/* Per-hour project fields */}
+      {getHourlySlots().map((hour, i) => {
+  // Access hourData only after knowing the hour
+  const hourData = hourlyDetails[selectedDate]?.[hour] || {};
 
-                  <div className="field">
-                    <label>Project Name</label>
-                    <input
-                      type="text"
-                      placeholder="Enter project name"
-                      value={project.projectName || ""}
-                      onChange={(e) => handleProjectFieldChange(startHour, "projectName", e.target.value)}
-                    />
-                  </div>
+  return (
+    <div key={i} className="hour-block">
+      <h4>{hour}:00 - {hour + 1}:00</h4>
 
-                  <div className="field">
-                    <label>Project Phase</label>
-                    <select
-                      value={project.projectPhase || ""}
-                      onChange={(e) => handleProjectFieldChange(startHour, "projectPhase", e.target.value)}
-                    >
-                      <option value="">Select Phase</option>
-                      <option value="Planning">Planning</option>
-                      <option value="Execution">Execution</option>
-                      <option value="Review">Review</option>
-                    </select>
-                  </div>
+      <div className="field">
+        <label>Project Type</label>
+        <select
+          value={hourData.type || ""}
+          onChange={(e) => updateHourDetail(hour, "type", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">Select</option>
+          <option>Billable</option>
+          <option>Internal</option>
+        </select>
+      </div>
 
-                  <div className="field">
-                    <label>Project Task</label>
-                    <input
-                      type="text"
-                      placeholder="Enter task description"
-                      value={project.projectTask || ""}
-                      onChange={(e) => handleProjectFieldChange(startHour, "projectTask", e.target.value)}
-                    />
-                  </div>
+      <div className="field">
+        <label>Project Category</label>
+        <select
+          value={hourData.category || ""}
+          onChange={(e) => updateHourDetail(hour, "category", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">Select Category</option>
+          <option>Software</option>
+          <option>Engineering</option>
+          <option>Training</option>
+        </select>
+      </div>
 
-                  <hr />
-                </div>
-              );
-            })}
-          </div>
-          <div className="edit-footer">
-            <button className="cancel-btn" onClick={closeEditPanel}>Cancel</button>
-            <button className="save-btn" onClick={handleSaveTimesheet}>Save</button>
-          </div>
-        </div>
-      )}
+      <div className="field">
+        <label>Project Name</label>
+        <select
+          value={hourData.name || ""}
+          onChange={(e) => updateHourDetail(hour, "name", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">Select Project</option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.projectName}>
+              {project.projectName}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="field">
+        <label>Project Phase</label>
+        <select
+          value={hourData.phase || ""}
+          onChange={(e) => updateHourDetail(hour, "phase", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">-- Select Phase --</option>
+          <option value="Design">Design</option>
+          <option value="Development">Development</option>
+          <option value="Testing">Testing</option>
+          <option value="Release">Release</option>
+          <option value="Bug Fix">Bug Fix</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label>Project Task</label>
+        <select
+          value={hourData.task || ""}
+          onChange={(e) => updateHourDetail(hour, "task", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">Select Task</option>
+          {(taskOptions[hourData.category]?.[hourData.phase] || []).map(
+            (t, idx) => (
+              <option key={idx} value={t}>
+                {t}
+              </option>
+            )
+          )}
+        </select>
+      </div>
+      <hr />
+    </div>
+  );
+})}
+
+    </div>
+
+    <div className="edit-footer">
+      <button className="cancel-btn" onClick={closeEditPanel}>Cancel</button>
+      <button className="save-btn" onClick={handleSaveTimesheet}>Save</button>
+    </div>
+  </div>
+)}
+
+
 
       {/* Approval Drawer - Add similar handlers and controlled inputs if needed */}
       {showApprovalDrawer && (
