@@ -34,7 +34,7 @@ function App() {
         <Route path="/add_project" element={<AddProject />} />
 
         {/* Employee details route */}
-        <Route path="/employee/:id" element={<EmployeeDetail />} />
+        <Route path="/employee" element={<EmployeeDetail />} />
 
         {/* Catch-all redirect to login */}
         <Route path="*" element={<Navigate to="/login" replace />} />

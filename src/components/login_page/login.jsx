@@ -65,7 +65,7 @@ export default function LoginPage() {
       //   navigate("/dashboard");
       // }
       else if (data.role === "employee") {
-        navigate(`/employee/${data.employeeId}`);
+        navigate(`/employee`);
       } else if (data.role === "tl") {
         navigate("/tldashboard");
       } else if (data.role === "hr") {
