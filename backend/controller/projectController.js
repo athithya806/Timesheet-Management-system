@@ -1,9 +1,8 @@
-// projectController.js
-
 // Add Project
 export const addProjects = (db) => (req, res) => {
   const {
     projectName,
+    clientName, // NEW
     projectType,
     description,
     plannedStartDate,
@@ -33,14 +32,15 @@ export const addProjects = (db) => (req, res) => {
 
   const sql = `
     INSERT INTO projects 
-    (project_name, project_type, description, planned_start_date, planned_end_date, actual_start_date, actual_end_date, status, assign_members, phases)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (project_name, client_name, project_type, description, planned_start_date, planned_end_date, actual_start_date, actual_end_date, status, assign_members, phases)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     sql,
     [
       projectName,
+      clientName || null, // NEW
       projectType,
       description,
       plannedStartDate || null,
@@ -75,6 +75,7 @@ export const getProjects = (db) => (req, res) => {
     const projects = rows.map((row) => ({
       id: row.project_id,
       projectName: row.project_name,
+      clientName: row.client_name, // NEW
       projectType: row.project_type,
       description: row.description,
       plannedStartDate: row.planned_start_date,
@@ -97,6 +98,7 @@ export const updateProject = (db) => (req, res) => {
   const { id } = req.params;
   const {
     projectName,
+    clientName, // NEW
     projectType,
     description,
     plannedStartDate,
@@ -115,6 +117,7 @@ export const updateProject = (db) => (req, res) => {
     UPDATE projects 
     SET 
       project_name=?,
+      client_name=?,
       project_type=?,
       description=?,
       planned_start_date=?,
@@ -131,6 +134,7 @@ export const updateProject = (db) => (req, res) => {
     sql,
     [
       projectName,
+      clientName || null, // NEW
       projectType,
       description,
       plannedStartDate || null,

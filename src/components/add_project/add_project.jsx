@@ -3,6 +3,7 @@ import "./add_project.css";
 
 const AddProject = () => {
   const [projectName, setProjectName] = useState("");
+  const [clientName, setClientName] = useState(""); // NEW
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("ongoing");
   const [plannedStartDate, setPlannedStartDate] = useState("");
@@ -42,12 +43,11 @@ const AddProject = () => {
       return;
     }
 
-    // Filter by names that start with the input string
     const filtered = members
       .filter(
         (m) =>
           m.fullName &&
-          m.fullName.toLowerCase().startsWith(value.toLowerCase()) && // Changed to startsWith
+          m.fullName.toLowerCase().startsWith(value.toLowerCase()) &&
           !assignedMembers.includes(m.fullName)
       )
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
@@ -77,6 +77,7 @@ const AddProject = () => {
 
     const newProject = {
       projectName,
+      clientName, // NEW
       projectType,
       description,
       plannedStartDate: plannedStartDate || null,
@@ -105,6 +106,7 @@ const AddProject = () => {
 
       // Reset form
       setProjectName("");
+      setClientName(""); // NEW
       setDescription("");
       setStatus("ongoing");
       setPlannedStartDate("");
@@ -138,6 +140,18 @@ const AddProject = () => {
               required
             />
           </div>
+
+          <div className="form-group">
+            <label className="form-label">Client Name</label>
+            <input
+              className="form-input"
+              type="text"
+              placeholder="Enter client name"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+            />
+          </div>
+
           <div className="form-group">
             <label className="form-label">Project Type</label>
             <select
@@ -152,6 +166,7 @@ const AddProject = () => {
           </div>
         </div>
 
+        {/* Assign Members Section */}
         <div className="form-group">
           <label className="form-label">Assign Members</label>
           <div className="multi-select-container">
@@ -188,6 +203,7 @@ const AddProject = () => {
           </div>
         </div>
 
+        {/* Description */}
         <div className="form-group">
           <label className="form-label">Project Description</label>
           <textarea
@@ -200,6 +216,7 @@ const AddProject = () => {
           />
         </div>
 
+        {/* Dates */}
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Planned Start Date</label>
@@ -242,6 +259,7 @@ const AddProject = () => {
           </div>
         </div>
 
+        {/* Status */}
         <div className="form-group">
           <label className="form-label">Status</label>
           <div className="gender-options">
