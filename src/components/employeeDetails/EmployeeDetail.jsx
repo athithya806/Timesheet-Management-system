@@ -11,7 +11,7 @@ const EmployeeDetail = () => {
   const [showApprovalDrawer, setShowApprovalDrawer] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [approvalStatus, setApprovalStatus] = useState({});
-  const [overtime, setOvertimeHours] = useState(0);
+  
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [checkInOut, setCheckInOut] = useState({ checkIn: "", checkOut: "" });
@@ -25,7 +25,8 @@ const EmployeeDetail = () => {
   const [timecardData, setTimecardData] = useState([]);
   // For editing hourly project fields, example initialized as empty object
   const [editProjectsByHour, setEditProjectsByHour] = useState({});
-
+const minHour = 9;   // e.g. earliest checkIn
+const maxHour = 19;
   // Pad time utility
   const padTime = (t) => (t && t.match(/^\d{2}:\d{2}$/) ? t + ":00" : t || "00:00:00");
 
@@ -91,22 +92,58 @@ const EmployeeDetail = () => {
     };
     return `${to12(h24)} - ${to12(h24 + 1)}`;
   };
+  // parse YYYY-MM-DD reliably into a local Date at midnight (avoids timezone shift)
+const parseYMD = (ymd) => {
+  if (!ymd) return null;
+  const parts = String(ymd).split("-");
+  if (parts.length !== 3) return null;
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  return new Date(y, m - 1, d);
+};
+
 const getHourlySlots = () => {
-  if (!checkInOut.checkIn) return [];
+  // determine whether selected date is today
+  const selectedDateObj = parseYMD(selectedDate);
+  const todayObj = parseYMD(formatDate(new Date())); // normalized local today
+  const isToday = selectedDateObj && todayObj && selectedDateObj.getTime() === todayObj.getTime();
 
+  // if user hasn't set check-in yet, return a default range
+  // - for today: up to current hour
+  // - for past days: full working day (minHour..maxHour)
+  if (!checkInOut.checkIn) {
+    const now = new Date();
+    const end = isToday ? now.getHours() : maxHour;
+    const slots = [];
+    for (let h = minHour; h <= end; h++) {
+      if (h === 13) continue; // skip lunch
+      slots.push(h);
+    }
+    return slots;
+  }
+
+  // parse start hour from check-in
   const [startH] = checkInOut.checkIn.split(":").map(Number);
-  const now = new Date();
-  const currentHour = now.getHours();
 
+  // end hour preference: use check-out if set, otherwise maxHour
+  let endH = maxHour;
+  if (checkInOut.checkOut) {
+    const [coHour] = checkInOut.checkOut.split(":").map(Number);
+    if (!Number.isNaN(coHour)) endH = coHour;
+  }
+
+  // If selected date is today, restrict end to current hour.
+  if (isToday) {
+    const currentHour = new Date().getHours();
+    endH = Math.min(endH, currentHour);
+  }
+
+  // Build slots from startH .. endH (skip lunch)
   const slots = [];
   let hour = startH;
-
-  while (slots.length < 9 && hour <= currentHour) {
-    if (hour === 13) {
-      // Skip lunch hour
-      hour++;
-      continue;
-    }
+  while (hour <= endH) {
+    if (hour === 13) { hour++; continue; }
     slots.push(hour);
     hour++;
   }
@@ -114,7 +151,26 @@ const getHourlySlots = () => {
   return slots;
 };
 
+
+// Generate dynamic timeline headers
+const generateTimelineHeaders = (startHour, endHour) => {
+  let headers = [];
+  for (let hour = startHour; hour < endHour; hour++) {
+    const start = new Date(0, 0, 0, hour);
+    const end = new Date(0, 0, 0, hour + 1);
+
+    headers.push(
+      `${start.toLocaleTimeString([], { hour: "numeric", hour12: true })} - 
+       ${end.toLocaleTimeString([], { hour: "numeric", hour12: true })}`
+    );
+  }
+  return headers;
+};
+// Example inside EmployeeDetail.jsx component
+const headers = generateTimelineHeaders(selectedDate);
+
   // Open/close panels
+// Open/close panels
 const openEditPanel = (date) => {
   if (!serverToday) {
     alert("⚠️ Server date not loaded yet. Please try again.");
@@ -124,43 +180,46 @@ const openEditPanel = (date) => {
   // Ensure we have a Date object
   const dateObj = typeof date === "string" ? new Date(date) : date;
 
-  // Normalize dates (ignore hours/minutes/seconds)
-  const today = new Date(serverToday); // ✅ use server date, not client date
+  // Normalize server "today"
+  const today = new Date(serverToday);
   today.setHours(0, 0, 0, 0);
 
+  // Normalize selected date
+  const selected = new Date(dateObj);
+  selected.setHours(0, 0, 0, 0);
+
+  // Two weeks ago boundary
   const twoWeeksAgo = new Date(today);
   twoWeeksAgo.setDate(today.getDate() - 14);
   twoWeeksAgo.setHours(0, 0, 0, 0);
 
-  // Future date check
-  if (dateObj > today) {
+  // ✅ Future date check
+  if (selected > today) {
     alert("⚠️ Future dates are not allowed!");
     return;
   }
 
-  // Past date limit (only 2 weeks)
-  if (dateObj < twoWeeksAgo) {
+  // ✅ Past limit check (only 2 weeks old max)
+  if (selected < twoWeeksAgo) {
     alert("⚠️ You can only edit timesheets from the past 2 weeks!");
     return;
   }
 
   // Format date as string for state
-  const formatted = formatDate(dateObj);
+  const formatted = formatDate(selected);
   setSelectedDate(formatted);
 
-  // Find existing timecard entry
+  // Find existing entry for that date
   const entry = timecardData.find((d) => formatDate(d.date) === formatted);
 
   if (entry) {
-    // Populate check-in/out and overtime
     setCheckInOut({
       checkIn: entry.checkIn || "",
       checkOut: entry.checkOut || "",
     });
-    setOvertimeHours(entry.overtime || 0);
+
     setFormMode(entry.status || "Work");
 
-    // Parse hourly blocks
     try {
       const parsed = JSON.parse(entry.hourBlocks || "[]");
       const mapped = {};
@@ -181,9 +240,9 @@ const openEditPanel = (date) => {
       setHourlyDetails((prev) => ({ ...prev, [formatted]: {} }));
     }
   } else {
-    // New entry
+    // New entry setup
     setCheckInOut({ checkIn: "", checkOut: "" });
-    setOvertimeHours(0);
+  
     setFormMode("Work");
     setHourlyDetails((prev) => ({ ...prev, [formatted]: {} }));
   }
@@ -240,34 +299,35 @@ const openEditPanel = (date) => {
     },
   };
   // Save timesheet handler
-  const handleSaveTimesheet = async () => {
+   const handleSaveTimesheet = async () => {
     const date = selectedDate;
+    const dayData = hourlyDetails[date] || {};
     const status = formMode;
     const checkIn = padTime(checkInOut.checkIn);
     const checkOut = padTime(checkInOut.checkOut);
-
-    // Compose hourBlocks from editProjectsByHour state
-    const hourBlocks = Object.entries(editProjectsByHour)
-      .filter(([hour]) => parseInt(hour, 10) !== 13)
-      .map(([hour, details]) => ({
-        hour: formatHourRange(parseInt(hour, 10)),
-        projectType: details.projectType || "",
-        projectCategory: details.projectCategory || "",
-        projectName: details.projectName || "",
-        projectPhase: details.projectPhase || "",
-        projectTask: details.projectTask || ""
-      }));
-
+   
+    const hourBlocks = [];
+    for (let hour = 10; hour <= 18; hour++) {
+      if (hour === 13) continue; // skip lunch break
+      const details = dayData[hour] || {};
+      hourBlocks.push({
+        hour: formatHourRange(hour),
+        projectType: details.type || "",
+        projectCategory: details.category || "",
+        projectName: details.name || "",
+        projectPhase: details.phase || "",
+        projectTask: details.task || "",
+      });
+    }
     const email = localStorage.getItem("userEmail");
-
     const body = {
       date,
       checkIn,
       checkOut,
-      overtime,
+    
       status,
       hourBlocks,
-      email,
+      email, // ✅ send email
     };
 
     try {
@@ -279,7 +339,6 @@ const openEditPanel = (date) => {
       const result = await response.json();
       if (result.success) {
         alert("✅ Timesheet saved successfully!");
-        closeEditPanel();
       } else {
         alert("❌ Error: " + (result.error || "Could not save"));
       }
@@ -380,7 +439,7 @@ const openEditPanel = (date) => {
         <div className="hours-summary">
           <p className="total">{employee.totalHours || 0} hrs Total</p>
           <p>{employee.regularHours || 0} hrs Regular</p>
-          <p>{employee.overtimeHours || 0} hrs Overtime</p>
+   
           <p>{employee.holidayHours || 0} hrs Holiday</p>
         </div>
       </div>
@@ -390,12 +449,12 @@ const openEditPanel = (date) => {
         <p className="progress-text">Hour breakdown: {employee.totalHours || 0} hrs</p>
         <div className="progress-bar">
           <div className="approved" style={{ width: "70%" }}></div>
-          <div className="overtime" style={{ width: "20%" }}></div>
+          
           <div className="pending" style={{ width: "10%" }}></div>
         </div>
         <div className="progress-legend">
           <span className="legend green">Approved: {employee.approvedHours || 0} hrs</span>
-          <span className="legend red">Overtime: {employee.overtimeHours || 0} hrs</span>
+     
           <span className="legend orange">Pending: {employee.pendingHours || 0} hrs</span>
         </div>
       </div>
@@ -476,11 +535,9 @@ const openEditPanel = (date) => {
         <div className="timeline-view">
           <div className="timeline-header">
             <div className="date-cell">Date</div>
-            {[...Array(9)].map((_, i) => (
-              <div key={i} className="hour-label">
-                {formatHour(i + 10)} - {formatHour(i + 11)}
-              </div>
-            ))}
+        {headers.map((h, i) => (
+      <th key={i}>{h}</th>
+    ))}
             <div className="approval-cell">Edit</div>
           </div>
 
