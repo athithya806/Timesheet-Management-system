@@ -1,9 +1,20 @@
 import React, { useState, useEffect } from "react";
 import "./add_project.css";
 
+const DEPARTMENTS = [
+  "Innovative Manufacturing",
+  "Smart Factory Center",
+  "AR | VR | MR Research Centre",
+  "Digital Technology",
+  "Research Centre For PLM",
+  "Research Centre For Asset Performance",
+  "Product Innovation Center",
+  "Predictive Engineering",
+];
+
 const AddProject = () => {
   const [projectName, setProjectName] = useState("");
-  const [clientName, setClientName] = useState(""); // NEW
+  const [clientName, setClientName] = useState(""); 
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("ongoing");
   const [plannedStartDate, setPlannedStartDate] = useState("");
@@ -13,6 +24,10 @@ const AddProject = () => {
   const [assignedMembers, setAssignedMembers] = useState([]);
   const [projectType, setProjectType] = useState("billable");
   const [phases, setPhases] = useState([]);
+
+  // ✅ Two Departments
+  const [department1, setDepartment1] = useState("");
+  const [department2, setDepartment2] = useState("");
 
   const [members, setMembers] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
@@ -77,9 +92,11 @@ const AddProject = () => {
 
     const newProject = {
       projectName,
-      clientName, // NEW
+      clientName,
       projectType,
       description,
+      department1,
+      department2,
       plannedStartDate: plannedStartDate || null,
       plannedEndDate: plannedEndDate || null,
       actualStartDate: actualStartDate || null,
@@ -106,7 +123,7 @@ const AddProject = () => {
 
       // Reset form
       setProjectName("");
-      setClientName(""); // NEW
+      setClientName("");
       setDescription("");
       setStatus("ongoing");
       setPlannedStartDate("");
@@ -116,6 +133,8 @@ const AddProject = () => {
       setAssignedMembers([]);
       setProjectType("billable");
       setPhases([]);
+      setDepartment1("");
+      setDepartment2("");
     } catch (err) {
       alert("❌ " + err.message);
     }
@@ -200,6 +219,42 @@ const AddProject = () => {
                 ))}
               </ul>
             )}
+          </div>
+        </div>
+
+        {/* ✅ Departments Side by Side */}
+        <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Department 1</label>
+            <select
+              className="form-input"
+              value={department1}
+              onChange={(e) => setDepartment1(e.target.value)}
+              required
+            >
+              <option value="">Select Department</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Department 2</label>
+            <select
+              className="form-input"
+              value={department2}
+              onChange={(e) => setDepartment2(e.target.value)}
+            >
+              <option value="">Select Department</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
