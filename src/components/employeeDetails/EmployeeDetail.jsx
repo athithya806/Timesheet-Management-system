@@ -1,36 +1,263 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import "./EmployeeDetail.css";
 
 const EmployeeDetail = () => {
   const { id } = useParams();
+
+  // State declarations
   const [activeTab, setActiveTab] = useState("timeline");
-  const [showEditPanel, setShowEditPanel] = useState(false); // Manual time panel
-  const [showApprovalDrawer, setShowApprovalDrawer] = useState(false); // Approval drawer
+  const [showEditPanel, setShowEditPanel] = useState(false);
+  const [showApprovalDrawer, setShowApprovalDrawer] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [approvalStatus, setApprovalStatus] = useState({}); // Track approvals per day
+  const [approvalStatus, setApprovalStatus] = useState({});
+  
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [checkInOut, setCheckInOut] = useState({ checkIn: "", checkOut: "" });
+  const [employee, setEmployee] = useState({});
+  const [projects, setProjects] = useState([]);
+  const [serverToday, setServerToday] = useState(null);
 
-  const workSessions = [
-    { day: "Mon, 1st Jun", start: 10, end: 18, break: true },
-    { day: "Tue, 2nd Jun", start: 10, end: 18, break: true },
-    { day: "Wed, 3rd Jun", start: 10, end: 16, break: true },
-    { day: "Thu, 4th Jun", start: null, end: null },
-    { day: "Fri, 5th Jun", start: null, end: null },
-    { day: "Sat, 6th Jun", start: null, end: null },
-    { day: "Sun, 7th Jun", start: null, end: null },
-  ];
+  const [hourlyDetails, setHourlyDetails] = useState({});
+  const [formMode, setFormMode] = useState("");
 
-  // Manual edit panel
-  const openEditPanel = (date) => {
-    setSelectedDate(date);
-    setShowEditPanel(true);
+  const [timecardData, setTimecardData] = useState([]);
+  // For editing hourly project fields, example initialized as empty object
+  const [editProjectsByHour, setEditProjectsByHour] = useState({});
+const minHour = 9;   // e.g. earliest checkIn
+const maxHour = 19;
+  // Pad time utility
+  const padTime = (t) => (t && t.match(/^\d{2}:\d{2}$/) ? t + ":00" : t || "00:00:00");
+
+  // Convert hour range string to 24h integer hour
+  const parseHourKeyFromRange = (range) => {
+    const m = /^(\d{1,2})\s*(AM|PM)\s*-\s*/i.exec(range || "");
+    if (!m) return null;
+    let h = parseInt(m[1], 10);
+    const mer = m[2].toUpperCase();
+    if (mer === "PM" && h !== 12) h += 12;
+    if (mer === "AM" && h === 12) h = 24;
+    return h;
   };
+
+  const updateHourDetail = (hour, key, value) => {
+    setHourlyDetails((prev) => {
+      const currentDay = prev[selectedDate] || {};
+      const currentHour = currentDay[hour] || {};
+      return {
+        ...prev,
+        [selectedDate]: {
+          ...currentDay,
+          [hour]: {
+            ...currentHour,
+            [key]: value,
+          },
+        },
+      };
+    });
+  };
+  // Get all dates in selected month
+  const getAllDatesInMonth = (year, month) => {
+    const date = new Date(year, month, 1);
+    const result = [];
+    while (date.getMonth() === month) {
+      result.push(new Date(date));
+      date.setDate(date.getDate() + 1);
+    }
+    return result;
+  };
+  const daysInMonth = getAllDatesInMonth(selectedYear, selectedMonth);
+
+  // Formatters
+  const formatHour = (hour) => {
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour} ${suffix}`;
+  };
+
+  const formatDate = (date) => {
+    const d = date instanceof Date ? date : new Date(date);
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatHourRange = (h24) => {
+    const to12 = (h) => {
+      const mer = h >= 12 ? "PM" : "AM";
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12} ${mer}`;
+    };
+    return `${to12(h24)} - ${to12(h24 + 1)}`;
+  };
+  // parse YYYY-MM-DD reliably into a local Date at midnight (avoids timezone shift)
+const parseYMD = (ymd) => {
+  if (!ymd) return null;
+  const parts = String(ymd).split("-");
+  if (parts.length !== 3) return null;
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  return new Date(y, m - 1, d);
+};
+
+const getHourlySlots = () => {
+  // determine whether selected date is today
+  const selectedDateObj = parseYMD(selectedDate);
+  const todayObj = parseYMD(formatDate(new Date())); // normalized local today
+  const isToday = selectedDateObj && todayObj && selectedDateObj.getTime() === todayObj.getTime();
+
+  // if user hasn't set check-in yet, return a default range
+  // - for today: up to current hour
+  // - for past days: full working day (minHour..maxHour)
+  if (!checkInOut.checkIn) {
+    const now = new Date();
+    const end = isToday ? now.getHours() : maxHour;
+    const slots = [];
+    for (let h = minHour; h <= end; h++) {
+      if (h === 13) continue; // skip lunch
+      slots.push(h);
+    }
+    return slots;
+  }
+
+  // parse start hour from check-in
+  const [startH] = checkInOut.checkIn.split(":").map(Number);
+
+  // end hour preference: use check-out if set, otherwise maxHour
+  let endH = maxHour;
+  if (checkInOut.checkOut) {
+    const [coHour] = checkInOut.checkOut.split(":").map(Number);
+    if (!Number.isNaN(coHour)) endH = coHour;
+  }
+
+  // If selected date is today, restrict end to current hour.
+  if (isToday) {
+    const currentHour = new Date().getHours();
+    endH = Math.min(endH, currentHour);
+  }
+
+  // Build slots from startH .. endH (skip lunch)
+  const slots = [];
+  let hour = startH;
+  while (hour <= endH) {
+    if (hour === 13) { hour++; continue; }
+    slots.push(hour);
+    hour++;
+  }
+
+  return slots;
+};
+
+
+// Generate dynamic timeline headers
+const generateTimelineHeaders = (startHour, endHour) => {
+  let headers = [];
+  for (let hour = startHour; hour < endHour; hour++) {
+    const start = new Date(0, 0, 0, hour);
+    const end = new Date(0, 0, 0, hour + 1);
+
+    headers.push(
+      `${start.toLocaleTimeString([], { hour: "numeric", hour12: true })} - 
+       ${end.toLocaleTimeString([], { hour: "numeric", hour12: true })}`
+    );
+  }
+  return headers;
+};
+// Example inside EmployeeDetail.jsx component
+const headers = generateTimelineHeaders(selectedDate);
+
+  // Open/close panels
+// Open/close panels
+const openEditPanel = (date) => {
+  if (!serverToday) {
+    alert("⚠️ Server date not loaded yet. Please try again.");
+    return;
+  }
+
+  // Ensure we have a Date object
+  const dateObj = typeof date === "string" ? new Date(date) : date;
+
+  // Normalize server "today"
+  const today = new Date(serverToday);
+  today.setHours(0, 0, 0, 0);
+
+  // Normalize selected date
+  const selected = new Date(dateObj);
+  selected.setHours(0, 0, 0, 0);
+
+  // Two weeks ago boundary
+  const twoWeeksAgo = new Date(today);
+  twoWeeksAgo.setDate(today.getDate() - 14);
+  twoWeeksAgo.setHours(0, 0, 0, 0);
+
+  // ✅ Future date check
+  if (selected > today) {
+    alert("⚠️ Future dates are not allowed!");
+    return;
+  }
+
+  // ✅ Past limit check (only 2 weeks old max)
+  if (selected < twoWeeksAgo) {
+    alert("⚠️ You can only edit timesheets from the past 2 weeks!");
+    return;
+  }
+
+  // Format date as string for state
+  const formatted = formatDate(selected);
+  setSelectedDate(formatted);
+
+  // Find existing entry for that date
+  const entry = timecardData.find((d) => formatDate(d.date) === formatted);
+
+  if (entry) {
+    setCheckInOut({
+      checkIn: entry.checkIn || "",
+      checkOut: entry.checkOut || "",
+    });
+
+    setFormMode(entry.status || "Work");
+
+    try {
+      const parsed = JSON.parse(entry.hourBlocks || "[]");
+      const mapped = {};
+      parsed.forEach((block) => {
+        const key = parseHourKeyFromRange(block.hour);
+        if (key == null) return;
+        mapped[key] = {
+          type: block.projectType || "",
+          category: block.projectCategory || "",
+          name: block.projectName || "",
+          phase: block.projectPhase || "",
+          task: block.projectTask || "",
+        };
+      });
+      setHourlyDetails((prev) => ({ ...prev, [formatted]: mapped }));
+    } catch (err) {
+      console.error("Error parsing hourBlocks:", err);
+      setHourlyDetails((prev) => ({ ...prev, [formatted]: {} }));
+    }
+  } else {
+    // New entry setup
+    setCheckInOut({ checkIn: "", checkOut: "" });
+  
+    setFormMode("Work");
+    setHourlyDetails((prev) => ({ ...prev, [formatted]: {} }));
+  }
+
+  // Open edit panel
+  setShowEditPanel(true);
+};
+
+
+
   const closeEditPanel = () => {
     setShowEditPanel(false);
     setSelectedDate(null);
   };
 
-  // Approval drawer
   const openApprovalDrawer = (date) => {
     setSelectedDate(date);
     setShowApprovalDrawer(true);
@@ -40,21 +267,161 @@ const EmployeeDetail = () => {
     setSelectedDate(null);
   };
 
-  // Approve / Reject handlers
-  const approveSession = (day) => {
-    setApprovalStatus((prev) => ({ ...prev, [day]: "approved" }));
+
+  // Change handler example for hourly edit fields (expand as needed)
+  const handleProjectFieldChange = (hour, field, value) => {
+    setEditProjectsByHour((prev) => ({
+      ...prev,
+      [hour]: { ...prev[hour], [field]: value }
+    }));
   };
-  const rejectSession = (day) => {
-    setApprovalStatus((prev) => ({ ...prev, [day]: "rejected" }));
+  const taskOptions = {
+    Software: {
+      Design: ["POC", "Architecture", "UI/UX"],
+      Development: ["Frontend", "Backend", "Parameter Tuning"],
+      Testing: ["Unit Testing", "System Testing"],
+      Release: ["Configuration Management", "Deploy"],
+      "Bug Fix": ["Error", "New Feature"],
+    },
+    Engineering: {
+      Design: ["Blueprint", "Simulation"],
+      Development: ["Prototype", "Fabrication"],
+      Testing: ["Load Testing", "Field Testing"],
+      Release: ["Handover", "Maintenance"],
+      "Bug Fix": ["Repair", "Upgrade"],
+    },
+    Training: {
+      Design: ["Curriculum Design"],
+      Development: ["Material Preparation"],
+      Testing: ["Mock Sessions"],
+      Release: ["Delivery"],
+      "Bug Fix": ["Content Update"],
+    },
   };
+  // Save timesheet handler
+   const handleSaveTimesheet = async () => {
+    const date = selectedDate;
+    const dayData = hourlyDetails[date] || {};
+    const status = formMode;
+    const checkIn = padTime(checkInOut.checkIn);
+    const checkOut = padTime(checkInOut.checkOut);
+   
+    const hourBlocks = [];
+    for (let hour = 10; hour <= 18; hour++) {
+      if (hour === 13) continue; // skip lunch break
+      const details = dayData[hour] || {};
+      hourBlocks.push({
+        hour: formatHourRange(hour),
+        projectType: details.type || "",
+        projectCategory: details.category || "",
+        projectName: details.name || "",
+        projectPhase: details.phase || "",
+        projectTask: details.task || "",
+      });
+    }
+    const email = localStorage.getItem("userEmail");
+    const body = {
+      date,
+      checkIn,
+      checkOut,
+    
+      status,
+      hourBlocks,
+      email, // ✅ send email
+    };
+
+    try {
+      const response = await fetch("http://localhost:3001/addHourDetail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert("✅ Timesheet saved successfully!");
+      } else {
+        alert("❌ Error: " + (result.error || "Could not save"));
+      }
+    } catch (e) {
+      console.error("Save failed:", e);
+      alert("⚠️ Network error! Please try again.");
+    }
+  };
+  useEffect(() => {
+    fetch("http://localhost:3001/serverDate")
+      .then((res) => res.json())
+      .then((data) => {
+        const srvDate = new Date(data.date);
+        srvDate.setHours(0, 0, 0, 0); // normalize to midnight
+        setServerToday(srvDate);
+      })
+      .catch((err) => console.error("Failed to fetch server date:", err));
+  }, []);
+
+
+  // Data fetching effects (unchanged)
+  useEffect(() => {
+    fetch("http://localhost:3001/getProjects")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setProjects(data);
+        }
+      })
+      .catch((err) => console.error("Error fetching projects:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!employee?.id) return;
+    fetch(
+      `http://localhost:3001/getHourDetailsByMonth?year=${selectedYear}&month=${selectedMonth}&memberId=${employee.id}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          setTimecardData(data.data);
+          // prepare hourlyDetails for quick lookup
+          const byDate = {};
+          data.data.forEach((entry) => {
+            byDate[formatDate(entry.date)] = JSON.parse(entry.hourBlocks || "[]");
+          });
+          setHourlyDetails(byDate);
+        }
+      })
+      .catch((err) => console.error("Fetch error:", err));
+  }, [employee, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    const email = localStorage.getItem("userEmail");
+    if (!email) return;
+    fetch(`http://localhost:3001/api/members/byEmail?email=${email}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setEmployee(data.data);
+      })
+      .catch((err) => console.error("Error fetching employee by email:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!id) return;
+    fetch(`http://localhost:3001/api/members/${id}`)
+      .then((res) => res.json())
+      .then((member) => {
+        if (Array.isArray(member) && member.length > 0) {
+          setEmployee(member[0]);
+        } else if (member && member.id) {
+          setEmployee(member);
+        }
+      })
+      .catch((err) => console.error("Error fetching employee:", err));
+  }, [id]);
 
   return (
+    
     <div className="employee-detail-container">
       {/* Header */}
       <div className="header">
-        <Link to="/" className="back-link">
-          ← Back
-        </Link>
+        <Link to="/" className="back-link">← Back</Link>
         <h1>Time & Attendance</h1>
       </div>
 
@@ -62,51 +429,67 @@ const EmployeeDetail = () => {
       <div className="profile-section">
         <img
           src="https://via.placeholder.com/60"
-          alt="Employee"
+          alt={employee.name || "Employee"}
           className="profile-pic"
         />
         <div className="profile-info">
-          <h2>Ralph Edwards</h2>
-          <p className="role">Product Designer • Hourly</p>
+          <h2>{employee.name || "Name not loaded"}</h2>
+          <p className="role">{employee.role || "Role not loaded"}</p>
         </div>
         <div className="hours-summary">
-          <p className="total">264 hrs Total</p>
-          <p>172 hrs Regular</p>
-          <p>24 hrs Overtime</p>
-          <p>20 hrs Holiday</p>
+          <p className="total">{employee.totalHours || 0} hrs Total</p>
+          <p>{employee.regularHours || 0} hrs Regular</p>
+   
+          <p>{employee.holidayHours || 0} hrs Holiday</p>
         </div>
       </div>
 
       {/* Progress Bar */}
       <div className="progress-section">
-        <p className="progress-text">Hour breakdown: 264 hrs</p>
+        <p className="progress-text">Hour breakdown: {employee.totalHours || 0} hrs</p>
         <div className="progress-bar">
           <div className="approved" style={{ width: "70%" }}></div>
-          <div className="overtime" style={{ width: "20%" }}></div>
+          
           <div className="pending" style={{ width: "10%" }}></div>
         </div>
         <div className="progress-legend">
-          <span className="legend green">Approved: 132 hrs</span>
-          <span className="legend red">Overtime: 40 hrs</span>
-          <span className="legend orange">Pending: 10 hrs</span>
+          <span className="legend green">Approved: {employee.approvedHours || 0} hrs</span>
+     
+          <span className="legend orange">Pending: {employee.pendingHours || 0} hrs</span>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="tabs">
-        <button
-          className={`tab ${activeTab === "timecard" ? "active" : ""}`}
-          onClick={() => setActiveTab("timecard")}
-        >
+        <button className={`tab ${activeTab === "timecard" ? "active" : ""}`} onClick={() => setActiveTab("timecard")}>
           Timecard
         </button>
-        <button
-          className={`tab ${activeTab === "timeline" ? "active" : ""}`}
-          onClick={() => setActiveTab("timeline")}
-        >
+        <button className={`tab ${activeTab === "timeline" ? "active" : ""}`} onClick={() => setActiveTab("timeline")}>
           Timeline
         </button>
       </div>
+          <div className="month-selector">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i} value={i}>
+                    {new Date(0, i).toLocaleString("default", { month: "long" })}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {Array.from({ length: 16 }, (_, i) => (
+                  <option key={i} value={2020 + i}>
+                    {2020 + i}
+                  </option>
+                ))}
+              </select>
+            </div>
 
       {/* Actions */}
       <div className="actions">
@@ -133,229 +516,252 @@ const EmployeeDetail = () => {
               </tr>
             </thead>
             <tbody>
-              {workSessions.map((session, index) => (
-                <tr
-                  key={index}
-                  className="clickable-row"
-                  onClick={() => openEditPanel(session.day)}
-                >
-                  <td>{session.day}</td>
-                  <td>{session.start ? `${session.start}:00 AM` : "-"}</td>
-                  <td>{session.end ? `${session.end}:00 PM` : "-"}</td>
-                  <td>{session.break ? "1 hr" : "-"}</td>
-                  <td>{session.start && session.end ? "8 hrs" : "-"}</td>
-                  <td>{approvalStatus[session.day] || "-"}</td>
-                </tr>
-              ))}
+              {/* You should render your timecard rows here, e.g.:
+                  {timecardData.map((row, idx) => (
+                    <tr key={idx}>
+                      <td>{formatDate(row.date)}</td>
+                      <td>{row.checkIn}</td>
+                      <td>{row.checkOut}</td>
+                      <td>{row.mealBreak}</td>
+                      <td>{row.workHours}</td>
+                      <td>{row.approval}</td>
+                    </tr>
+                  ))}
+              */}
             </tbody>
           </table>
         </div>
-      ) : (
-        /* Timeline View */
+      ) : activeTab === "timeline" ? (
         <div className="timeline-view">
-          {/* Header */}
           <div className="timeline-header">
             <div className="date-cell">Date</div>
-            {[...Array(9)].map((_, i) => (
-              <div className="hour-label" key={i}>
-                {i + 10} AM
+        {headers.map((h, i) => (
+      <th key={i}>{h}</th>
+    ))}
+            <div className="approval-cell">Edit</div>
+          </div>
+
+          {daysInMonth.map((date, index) => {
+            const formatted = formatDate(date);
+            const entry = timecardData.find((d) => formatDate(d.date) === formatted);
+            const hourBlocks = entry ? JSON.parse(entry.hourBlocks || "[]") : [];
+
+            return (
+              <div className="timeline-row" key={index}>
+                <div className="date-cell">{formatted}</div>
+
+                {[...Array(9)].map((_, hourIdx) => {
+                  const hour = 10 + hourIdx;
+                  const block = hourBlocks.find(
+                    (b) =>
+                      b.hour === formatHourRange(hour) ||
+                      (b.hourKey && b.hourKey === hour) ||
+                      (typeof b.hour === "string" && parseHourKeyFromRange(b.hour) === hour)
+                  );
+
+                  const status = entry?.status || "Work";
+                  const isLeave = status === "Leave";
+                  const isFilled =
+                    block &&
+                    (block.projectType ||
+                      block.projectCategory ||
+                      block.projectName ||
+                      block.projectPhase ||
+                      block.projectTask);
+
+                  let colorClass = "";
+                  if (hour === 13) colorClass = "break";
+                  else if (isLeave) colorClass = "leave";
+                  else if (isFilled) colorClass = "work";
+
+                  return (
+                    <div
+                      key={hourIdx}
+                      className={`hour-cell ${colorClass}`}
+                      title={
+                        isLeave
+                          ? "Leave"
+                          : hour === 13
+                          ? "Lunch Break"
+                          : isFilled
+                          ? `${block.projectName || "-"} (${block.projectPhase || "-"})`
+                          : ""
+                      }
+                    />
+                  );
+                })}
+
+                <div className="approval-cell">
+                  <button className="icon-btn edit-btn" onClick={() => openEditPanel(formatted)}>
+                    ✎
+                  </button>
+                </div>
               </div>
-            ))}
-            <div className="approval-cell">Approval</div>
+            );
+          })}
+
+          <div className="legend-container">
+            <span className="legend-box work" /> Work
+            <span className="legend-box leave" /> Leave
+            <span className="legend-box break" /> Lunch Break
           </div>
+        </div>
+      ) : null}
 
-          {/* Rows */}
-          {workSessions.map((session, index) => (
-            <div className="timeline-row" key={index}>
-              <div className="date-cell">{session.day}</div>
+      {/* Manual Time Edit Panel - Hourly Project Fields */}
+{showEditPanel && (
+  <div className="edit-panel">
+    <div className="edit-header">
+      <h3>Edit Projects</h3>
+      <button className="close-btn" onClick={closeEditPanel}>✖</button>
+    </div>
 
-              {[...Array(9)].map((_, hour) => {
-                const currentHour = hour + 10;
-                const isWorkHour =
-                  session.start !== null &&
-                  session.end !== null &&
-                  currentHour >= session.start &&
-                  currentHour < session.end;
+    <div className="edit-content">
+      <p className="date-label">{selectedDate}</p>
 
-                const isBreak =
-                  session.break && currentHour === 12; // 12-1 break
+      {/* Global fields, only ONCE */}
+      <div className="field">
+        <label>Check-In Time</label>
+        <input
+          type="time"
+          value={checkInOut.checkIn}
+          onChange={e => setCheckInOut(prev => ({ ...prev, checkIn: e.target.value }))}
+        />
+      </div>
+      <div className="field">
+        <label>Check-Out Time</label>
+        <input
+          type="time"
+          value={checkInOut.checkOut}
+          onChange={e => setCheckInOut(prev => ({ ...prev, checkOut: e.target.value }))}
+        />
+      </div>
 
-                return (
-                  <div
-                    key={hour}
-                    className={`hour-cell ${
-                      isWorkHour ? (isBreak ? "break" : "work") : ""
-                    }`}
-                  ></div>
-                );
-              })}
+      <div className="field">
+        <label>Global Status</label>
+        <select value={formMode} onChange={e => setFormMode(e.target.value)}>
+          <option value="Work">Work</option>
+          <option value="Leave">Leave</option>
+        </select>
+      </div>
 
-              <button
-                className="icon-btn edit-btn"
-                onClick={() => openApprovalDrawer(session.day)}
-              >
-                ✎
-              </button>
-            </div>
+      {/* Per-hour project fields */}
+      {getHourlySlots().map((hour, i) => {
+  // Access hourData only after knowing the hour
+  const hourData = hourlyDetails[selectedDate]?.[hour] || {};
+
+  return (
+    <div key={i} className="hour-block">
+      <h4>{hour}:00 - {hour + 1}:00</h4>
+
+      <div className="field">
+        <label>Project Type</label>
+        <select
+          value={hourData.type || ""}
+          onChange={(e) => updateHourDetail(hour, "type", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">Select</option>
+          <option>Billable</option>
+          <option>Internal</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label>Project Category</label>
+        <select
+          value={hourData.category || ""}
+          onChange={(e) => updateHourDetail(hour, "category", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">Select Category</option>
+          <option>Software</option>
+          <option>Engineering</option>
+          <option>Training</option>
+        </select>
+      </div>
+
+      <div className="field">
+        <label>Project Name</label>
+        <select
+          value={hourData.name || ""}
+          onChange={(e) => updateHourDetail(hour, "name", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">Select Project</option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.projectName}>
+              {project.projectName}
+            </option>
           ))}
-        </div>
-      )}
+        </select>
+      </div>
 
-      {/* Manual Time Edit Panel replaced with hourly Project Fields */}
-      {showEditPanel && (
-        <div className="edit-panel">
-          <div className="edit-header">
-            <h3>Edit Projects</h3>
-            <button className="close-btn" onClick={closeEditPanel}>
-              ✖
-            </button>
-          </div>
-          <div className="edit-content">
-            <p className="date-label">{selectedDate}</p>
+      <div className="field">
+        <label>Project Phase</label>
+        <select
+          value={hourData.phase || ""}
+          onChange={(e) => updateHourDetail(hour, "phase", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">-- Select Phase --</option>
+          <option value="Design">Design</option>
+          <option value="Development">Development</option>
+          <option value="Testing">Testing</option>
+          <option value="Release">Release</option>
+          <option value="Bug Fix">Bug Fix</option>
+        </select>
+      </div>
 
-            {/* Loop for each hour */}
-            {workSessions
-              .find((s) => s.day === selectedDate)
-              ?.start &&
-              [...Array(
-                workSessions.find((s) => s.day === selectedDate).end -
-                  workSessions.find((s) => s.day === selectedDate).start
-              )].map((_, i) => {
-                const session = workSessions.find((s) => s.day === selectedDate);
-                const startHour = session.start + i;
-                const endHour = startHour + 1;
-                return (
-                  <div key={i} className="hour-block">
-                    <h4>
-                      {startHour}:00 - {endHour}:00
-                    </h4>
-                    <div className="field">
-                      <label>Project Type</label>
-                      <select>
-                        <option value="">Select Type</option>
-                        <option value="Internal">Internal</option>
-                        <option value="Client">Client</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Project Category</label>
-                      <select>
-                        <option value="">Select Category</option>
-                        <option value="Development">Development</option>
-                        <option value="Testing">Testing</option>
-                        <option value="Research">Research</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Project Name</label>
-                      <input type="text" placeholder="Enter project name" />
-                    </div>
-                    <div className="field">
-                      <label>Project Phase</label>
-                      <select>
-                        <option value="">Select Phase</option>
-                        <option value="Planning">Planning</option>
-                        <option value="Execution">Execution</option>
-                        <option value="Review">Review</option>
-                      </select>
-                    </div>
-                    <div className="field">
-                      <label>Project Task</label>
-                      <input type="text" placeholder="Enter task description" />
-                    </div>
-                    <hr />
-                  </div>
-                );
-              })}
-          </div>
+      <div className="field">
+        <label>Project Task</label>
+        <select
+          value={hourData.task || ""}
+          onChange={(e) => updateHourDetail(hour, "task", e.target.value)}
+          disabled={formMode === "Leave"}
+        >
+          <option value="">Select Task</option>
+          {(taskOptions[hourData.category]?.[hourData.phase] || []).map(
+            (t, idx) => (
+              <option key={idx} value={t}>
+                {t}
+              </option>
+            )
+          )}
+        </select>
+      </div>
+      <hr />
+    </div>
+  );
+})}
 
-          <div className="edit-footer">
-            <button className="cancel-btn" onClick={closeEditPanel}>
-              Cancel
-            </button>
-            <button className="save-btn">Save</button>
-          </div>
-        </div>
-      )}
+    </div>
 
-      {/* Approval Drawer can be updated similarly */}
+    <div className="edit-footer">
+      <button className="cancel-btn" onClick={closeEditPanel}>Cancel</button>
+      <button className="save-btn" onClick={handleSaveTimesheet}>Save</button>
+    </div>
+  </div>
+)}
+
+
+
+      {/* Approval Drawer - Add similar handlers and controlled inputs if needed */}
       {showApprovalDrawer && (
         <>
           <div className="overlay" onClick={closeApprovalDrawer}></div>
           <div className="approval-drawer">
             <div className="drawer-header">
               <h3>Edit Projects</h3>
-              <button className="close-btn" onClick={closeApprovalDrawer}>
-                ✖
-              </button>
+              <button className="close-btn" onClick={closeApprovalDrawer}>✖</button>
             </div>
             <div className="drawer-content">
               <p className="drawer-date">{selectedDate}</p>
-
-              {workSessions
-                .find((s) => s.day === selectedDate)
-                ?.start &&
-                [...Array(
-                  workSessions.find((s) => s.day === selectedDate).end -
-                    workSessions.find((s) => s.day === selectedDate).start
-                )].map((_, i) => {
-                  const session = workSessions.find(
-                    (s) => s.day === selectedDate
-                  );
-                  const startHour = session.start + i;
-                  const endHour = startHour + 1;
-                  return (
-                    <div key={i} className="hour-block">
-                      <h4>
-                        {startHour}:00 - {endHour}:00
-                      </h4>
-                      <div className="field">
-                        <label>Project Type</label>
-                        <select>
-                          <option value="">Select Type</option>
-                          <option value="Internal">Internal</option>
-                          <option value="Client">Client</option>
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>Project Category</label>
-                        <select>
-                          <option value="">Select Category</option>
-                          <option value="Development">Development</option>
-                          <option value="Testing">Testing</option>
-                          <option value="Research">Research</option>
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>Project Name</label>
-                        <input type="text" placeholder="Enter project name" />
-                      </div>
-                      <div className="field">
-                        <label>Project Phase</label>
-                        <select>
-                          <option value="">Select Phase</option>
-                          <option value="Planning">Planning</option>
-                          <option value="Execution">Execution</option>
-                          <option value="Review">Review</option>
-                        </select>
-                      </div>
-                      <div className="field">
-                        <label>Project Task</label>
-                        <input type="text" placeholder="Enter task description" />
-                      </div>
-                      <hr />
-                    </div>
-                  );
-                })}
+              {/* Similar structure as edit panel if needed */}
             </div>
-
             <div className="drawer-footer">
-              <div>
-                <button className="cancel-btn" onClick={closeApprovalDrawer}>
-                  Cancel
-                </button>
-                <button className="save-btn">Save</button>
-              </div>
+              <button className="cancel-btn" onClick={closeApprovalDrawer}>Cancel</button>
+              <button className="save-btn">Save</button>
             </div>
           </div>
         </>
