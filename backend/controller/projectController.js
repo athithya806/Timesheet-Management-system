@@ -12,6 +12,8 @@ export const addProjects = (db) => (req, res) => {
     assignedMembers,
     status,
     phases,
+    department1, // ✅ NEW
+    department2, // ✅ NEW
   } = req.body;
 
   if (!projectName || !description) {
@@ -32,8 +34,8 @@ export const addProjects = (db) => (req, res) => {
 
   const sql = `
     INSERT INTO projects 
-    (project_name, client_name, project_type, description, planned_start_date, planned_end_date, actual_start_date, actual_end_date, status, assign_members, phases)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (project_name, client_name, project_type, description, department1, department2, planned_start_date, planned_end_date, actual_start_date, actual_end_date, status, assign_members, phases)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
@@ -43,6 +45,8 @@ export const addProjects = (db) => (req, res) => {
       clientName || null, // NEW
       projectType,
       description,
+      department1 || null, // ✅ NEW
+      department2 || null, // ✅ NEW
       plannedStartDate || null,
       plannedEndDate || null,
       actualStartDate || null,
@@ -78,6 +82,8 @@ export const getProjects = (db) => (req, res) => {
       clientName: row.client_name, // NEW
       projectType: row.project_type,
       description: row.description,
+      department1: row.department1, // ✅ NEW
+      department2: row.department2, // ✅ NEW
       plannedStartDate: row.planned_start_date,
       plannedEndDate: row.planned_end_date,
       actualStartDate: row.actual_start_date,
@@ -108,6 +114,8 @@ export const updateProject = (db) => (req, res) => {
     assignedMembers,
     status,
     phases,
+    department1, // ✅ NEW
+    department2, // ✅ NEW
   } = req.body;
 
   const assignedMembersJSON = JSON.stringify(assignedMembers || []);
@@ -120,6 +128,8 @@ export const updateProject = (db) => (req, res) => {
       client_name=?,
       project_type=?,
       description=?,
+      department1=?, 
+      department2=?, 
       planned_start_date=?,
       planned_end_date=?,
       actual_start_date=?,
@@ -137,6 +147,8 @@ export const updateProject = (db) => (req, res) => {
       clientName || null, // NEW
       projectType,
       description,
+      department1 || null, // ✅ NEW
+      department2 || null, // ✅ NEW
       plannedStartDate || null,
       plannedEndDate || null,
       actualStartDate || null,
@@ -156,7 +168,7 @@ export const updateProject = (db) => (req, res) => {
   );
 };
 
-// Delete Project
+// Delete Project (no change needed)
 export const deleteProject = (db) => (req, res) => {
   const { project_id } = req.params;
 

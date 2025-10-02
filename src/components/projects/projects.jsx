@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "./projects.css";
 
+// Add these two consts at the top
 const projectData = [
   {
     name: "AI Chatbot",
@@ -43,6 +44,9 @@ const projectData = [
   },
 ];
 
+const phasesList = ["Phase 1", "Phase 2", "Phase 3", "Phase 4", "Phase 5"];
+
+// Component starts here
 const Project = () => {
   const navigate = useNavigate();
 
@@ -50,7 +54,6 @@ const Project = () => {
     navigate(`/employee/${employeeId}`);
   };
 
-  // Group projects by department
   const departmentMap = {};
   projectData.forEach((proj) => {
     if (!departmentMap[proj.department]) {
@@ -71,6 +74,7 @@ const Project = () => {
                 <th>Project</th>
                 <th>Start</th>
                 <th>Hours</th>
+                <th>Phases</th>
                 <th>Employee</th>
                 <th>Role</th>
                 <th>Status</th>
@@ -85,6 +89,13 @@ const Project = () => {
                         <td rowSpan={proj.employees.length}>{proj.name}</td>
                         <td rowSpan={proj.employees.length}>{proj.start}</td>
                         <td rowSpan={proj.employees.length}>{proj.hours}</td>
+                        <td rowSpan={proj.employees.length}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                            {phasesList.map((phase, i) => (
+                              <div key={i} className="phase-badge">{phase}</div>
+                            ))}
+                          </div>
+                        </td>
                       </>
                     )}
                     <td
