@@ -2,7 +2,7 @@
 export const addProjects = (db) => (req, res) => {
   const {
     projectName,
-    clientName, // NEW
+    clientName,
     projectType,
     description,
     plannedStartDate,
@@ -12,8 +12,7 @@ export const addProjects = (db) => (req, res) => {
     assignedMembers,
     status,
     phases,
-    department1, // ✅ NEW
-    department2, // ✅ NEW
+    departments, // ✅ Updated: array of departments
   } = req.body;
 
   if (!projectName || !description) {
@@ -23,30 +22,31 @@ export const addProjects = (db) => (req, res) => {
   }
 
   const assignedMembersJSON = JSON.stringify(assignedMembers || []);
-  const formattedPhases = (phases || []).map((phase, idx) => ({
-    phaseName: phase.phaseName || `Phase ${idx + 1}`,
-    tasks: (phase.tasks || []).map((task, tIdx) => ({
-      taskName: task.taskName || `Task ${tIdx + 1}`,
-      assignedTo: task.assignedTo || "",
-    })),
-  }));
-  const phasesJSON = JSON.stringify(formattedPhases);
+  const phasesJSON = JSON.stringify(
+    (phases || []).map((phase, idx) => ({
+      phaseName: phase.phaseName || `Phase ${idx + 1}`,
+      tasks: (phase.tasks || []).map((task, tIdx) => ({
+        taskName: task.taskName || `Task ${tIdx + 1}`,
+        assignedTo: task.assignedTo || "",
+      })),
+    }))
+  );
+  const departmentsJSON = JSON.stringify(departments || []);
 
   const sql = `
     INSERT INTO projects 
-    (project_name, client_name, project_type, description, department1, department2, planned_start_date, planned_end_date, actual_start_date, actual_end_date, status, assign_members, phases)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (project_name, client_name, project_type, description, departments, planned_start_date, planned_end_date, actual_start_date, actual_end_date, status, assign_members, phases)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     sql,
     [
       projectName,
-      clientName || null, // NEW
+      clientName || null,
       projectType,
       description,
-      department1 || null, // ✅ NEW
-      department2 || null, // ✅ NEW
+      departmentsJSON, // ✅ store as JSON
       plannedStartDate || null,
       plannedEndDate || null,
       actualStartDate || null,
@@ -64,7 +64,7 @@ export const addProjects = (db) => (req, res) => {
       res.json({
         message: "✅ Project created successfully!",
         projectId: result.insertId,
-        phases: formattedPhases,
+        phases: JSON.parse(phasesJSON),
       });
     }
   );
@@ -79,18 +79,17 @@ export const getProjects = (db) => (req, res) => {
     const projects = rows.map((row) => ({
       id: row.project_id,
       projectName: row.project_name,
-      clientName: row.client_name, // NEW
+      clientName: row.client_name,
       projectType: row.project_type,
       description: row.description,
-      department1: row.department1, // ✅ NEW
-      department2: row.department2, // ✅ NEW
+      departments: row.departments ? JSON.parse(row.departments) : [], // ✅ parse JSON
       plannedStartDate: row.planned_start_date,
       plannedEndDate: row.planned_end_date,
       actualStartDate: row.actual_start_date,
       actualEndDate: row.actual_end_date,
       status: row.status,
       assignedMembers: row.assign_members ? JSON.parse(row.assign_members) : [],
-      phases: JSON.parse(row.phases || "[]"),
+      phases: row.phases ? JSON.parse(row.phases) : [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }));
@@ -104,7 +103,7 @@ export const updateProject = (db) => (req, res) => {
   const { id } = req.params;
   const {
     projectName,
-    clientName, // NEW
+    clientName,
     projectType,
     description,
     plannedStartDate,
@@ -114,12 +113,12 @@ export const updateProject = (db) => (req, res) => {
     assignedMembers,
     status,
     phases,
-    department1, // ✅ NEW
-    department2, // ✅ NEW
+    departments, // ✅ array
   } = req.body;
 
   const assignedMembersJSON = JSON.stringify(assignedMembers || []);
   const phasesJSON = JSON.stringify(phases || []);
+  const departmentsJSON = JSON.stringify(departments || []);
 
   const sql = `
     UPDATE projects 
@@ -128,8 +127,7 @@ export const updateProject = (db) => (req, res) => {
       client_name=?,
       project_type=?,
       description=?,
-      department1=?, 
-      department2=?, 
+      departments=?,
       planned_start_date=?,
       planned_end_date=?,
       actual_start_date=?,
@@ -144,11 +142,10 @@ export const updateProject = (db) => (req, res) => {
     sql,
     [
       projectName,
-      clientName || null, // NEW
+      clientName || null,
       projectType,
       description,
-      department1 || null, // ✅ NEW
-      department2 || null, // ✅ NEW
+      departmentsJSON, // ✅ update as JSON
       plannedStartDate || null,
       plannedEndDate || null,
       actualStartDate || null,
@@ -168,7 +165,7 @@ export const updateProject = (db) => (req, res) => {
   );
 };
 
-// Delete Project (no change needed)
+// Delete Project (no changes needed)
 export const deleteProject = (db) => (req, res) => {
   const { project_id } = req.params;
 

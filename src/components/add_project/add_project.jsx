@@ -14,7 +14,7 @@ const DEPARTMENTS = [
 
 const AddProject = () => {
   const [projectName, setProjectName] = useState("");
-  const [clientName, setClientName] = useState(""); 
+  const [clientName, setClientName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("ongoing");
   const [plannedStartDate, setPlannedStartDate] = useState("");
@@ -25,14 +25,17 @@ const AddProject = () => {
   const [projectType, setProjectType] = useState("billable");
   const [phases, setPhases] = useState([]);
 
-  // ✅ Two Departments
-  const [department1, setDepartment1] = useState("");
-  const [department2, setDepartment2] = useState("");
-
+  // Members multi-select
   const [members, setMembers] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchInput, setSearchInput] = useState("");
+
+  // Departments multi-select
+  const [selectedDepartments, setSelectedDepartments] = useState([]);
+  const [deptSearchInput, setDeptSearchInput] = useState("");
+  const [filteredDepartments, setFilteredDepartments] = useState([]);
+  const [showDeptDropdown, setShowDeptDropdown] = useState(false);
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -48,16 +51,15 @@ const AddProject = () => {
     fetchMembers();
   }, []);
 
+  // --- Members Handlers ---
   const handleMemberChange = (e) => {
     const value = e.target.value;
     setSearchInput(value);
-
     if (!value.trim()) {
       setFilteredMembers([]);
       setShowDropdown(false);
       return;
     }
-
     const filtered = members
       .filter(
         (m) =>
@@ -66,7 +68,6 @@ const AddProject = () => {
           !assignedMembers.includes(m.fullName)
       )
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
-
     setFilteredMembers(filtered);
     setShowDropdown(true);
   };
@@ -83,10 +84,36 @@ const AddProject = () => {
     setAssignedMembers(assignedMembers.filter((m) => m !== fullName));
   };
 
+  // --- Departments Handlers ---
+  const handleDepartmentChange = (e) => {
+    const value = e.target.value;
+    setDeptSearchInput(value);
+    const filtered = DEPARTMENTS.filter(
+      (d) =>
+        d.toLowerCase().includes(value.toLowerCase()) &&
+        !selectedDepartments.includes(d)
+    );
+    setFilteredDepartments(filtered);
+    setShowDeptDropdown(true);
+  };
+
+  const handleSelectDepartment = (dept) => {
+    if (!selectedDepartments.includes(dept)) {
+      setSelectedDepartments([...selectedDepartments, dept]);
+    }
+    setDeptSearchInput("");
+    setShowDeptDropdown(false);
+  };
+
+  const handleRemoveDepartment = (dept) => {
+    setSelectedDepartments(selectedDepartments.filter((d) => d !== dept));
+  };
+
+  // --- Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!projectName || !description) {
-      alert("Please fill in required fields");
+    if (!projectName || !description || selectedDepartments.length === 0) {
+      alert("Please fill in required fields and select at least one department");
       return;
     }
 
@@ -95,8 +122,7 @@ const AddProject = () => {
       clientName,
       projectType,
       description,
-      department1,
-      department2,
+      departments: selectedDepartments,
       plannedStartDate: plannedStartDate || null,
       plannedEndDate: plannedEndDate || null,
       actualStartDate: actualStartDate || null,
@@ -133,8 +159,7 @@ const AddProject = () => {
       setAssignedMembers([]);
       setProjectType("billable");
       setPhases([]);
-      setDepartment1("");
-      setDepartment2("");
+      setSelectedDepartments([]);
     } catch (err) {
       alert("❌ " + err.message);
     }
@@ -147,6 +172,7 @@ const AddProject = () => {
       </div>
 
       <form onSubmit={handleSubmit}>
+        {/* Project Info */}
         <div className="form-row">
           <div className="form-group">
             <label className="form-label">Project Name</label>
@@ -185,7 +211,7 @@ const AddProject = () => {
           </div>
         </div>
 
-        {/* Assign Members Section */}
+        {/* Assign Members */}
         <div className="form-group">
           <label className="form-label">Assign Members</label>
           <div className="multi-select-container">
@@ -222,39 +248,44 @@ const AddProject = () => {
           </div>
         </div>
 
-        {/* ✅ Departments Side by Side */}
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Department 1</label>
-            <select
-              className="form-input"
-              value={department1}
-              onChange={(e) => setDepartment1(e.target.value)}
-              required
-            >
-              <option value="">Select Department</option>
-              {DEPARTMENTS.map((d) => (
-                <option key={d} value={d}>
+        {/* Departments */}
+        <div className="form-group">
+          <label className="form-label">Departments</label>
+          <div className="multi-select-container">
+            <div className="selected-chips">
+              {selectedDepartments.map((d) => (
+                <span key={d} className="chip">
                   {d}
-                </option>
+                  <button
+                    type="button"
+                    className="chip-close"
+                    onClick={() => handleRemoveDepartment(d)}
+                  >
+                    ×
+                  </button>
+                </span>
               ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Department 2</label>
-            <select
+            </div>
+            <input
               className="form-input"
-              value={department2}
-              onChange={(e) => setDepartment2(e.target.value)}
-            >
-              <option value="">Select Department</option>
-              {DEPARTMENTS.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+              type="text"
+              placeholder="Type to search departments..."
+              value={deptSearchInput}
+              onChange={handleDepartmentChange}
+              onFocus={() => setShowDeptDropdown(true)}
+            />
+            {showDeptDropdown && (
+              <ul className="dropdown">
+                {(deptSearchInput
+                  ? filteredDepartments
+                  : DEPARTMENTS.filter((d) => !selectedDepartments.includes(d))
+                ).map((d) => (
+                  <li key={d} onClick={() => handleSelectDepartment(d)}>
+                    {d}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
