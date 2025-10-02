@@ -28,6 +28,7 @@ const Timesheet = () => {
         return res.json();
       })
       .then((data) => {
+        console.log("Fetched employees:", data); // debug
         setEmployees(data);
         setLoading(false);
       })
@@ -38,12 +39,10 @@ const Timesheet = () => {
       });
   };
 
-  // Initial fetch
   useEffect(() => {
     fetchEmployees();
   }, []);
 
-  // Refetch when coming back from edit page
   useEffect(() => {
     const handleFocus = () => {
       if (activeTab === "employeeList") fetchEmployees();
@@ -53,7 +52,7 @@ const Timesheet = () => {
   }, [activeTab]);
 
   const filteredEmployees = employees.filter((emp) =>
-    emp.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+    emp.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -90,7 +89,7 @@ const Timesheet = () => {
         </div>
 
         {/* Period Section */}
-        <div className="period">
+        {/* <div className="period">
           <div>
             <p className="period-label">Time period:</p>
             <p className="period-value">1st Jun – 31st Jul 2022</p>
@@ -100,16 +99,16 @@ const Timesheet = () => {
               <FileText size={16} /> Create Report
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Calendar */}
-        <div className="calendar">
+        {/* <div className="calendar">
           {[...Array(31)].map((_, i) => (
             <div key={i} className={`day ${i < 21 ? "green" : "red"}`}>
               {i + 1}
             </div>
           ))}
-        </div>
+        </div> */}
 
         {/* Search Bar */}
         <div className="search-bar">
@@ -148,23 +147,29 @@ const Timesheet = () => {
                       className="clickable-row"
                       onClick={() => handleRowClick(emp.id)}
                     >
-                      <td>
-                        {emp.imagePath ? (
-                          <img
-                            src={
-                              emp.imagePath.startsWith("http")
-                                ? emp.imagePath
-                                : `http://localhost:3001${emp.imagePath}`
-                            }
-                            alt={emp.fullName}
-                            className="profile-img"
-                          />
-                        ) : (
-                          <div className="profile-placeholder">
-                            {emp.fullName?.charAt(0)}
-                          </div>
-                        )}
-                      </td>
+                    <td>
+  {emp.imagePath ? (
+    <img
+      src={
+        emp.imagePath.startsWith("/uploads")
+          ? `http://localhost:3001${emp.imagePath}`
+          : `http://localhost:3001/uploads/${emp.imagePath}`
+      }
+      alt={emp.fullName}
+      className="profile-img"
+      onError={(e) => {
+        console.error("Image load error:", emp.imagePath);
+        e.target.onerror = null;
+        e.target.src = "https://ui-avatars.com/api/?name=" + emp.fullName;
+      }}
+    />
+  ) : (
+    <div className="profile-placeholder">
+      {emp.fullName?.charAt(0)}
+    </div>
+  )}
+</td>
+
                       <td>{emp.empId}</td>
                       <td>{emp.fullName}</td>
                       <td>{emp.email}</td>
@@ -199,7 +204,9 @@ const Timesheet = () => {
                                       employees.filter((e) => e.id !== emp.id)
                                     );
                                 })
-                                .catch((err) => console.error(err));
+                                .catch((err) =>
+                                  console.error("Delete error:", err)
+                                );
                             }
                           }}
                         >
