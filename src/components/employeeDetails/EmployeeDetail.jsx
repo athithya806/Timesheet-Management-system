@@ -516,7 +516,7 @@ const openEditPanel = (date) => {
               </tr>
             </thead>
             <tbody>
-              {/* You should render your timecard rows here, e.g.:
+            
                   {timecardData.map((row, idx) => (
                     <tr key={idx}>
                       <td>{formatDate(row.date)}</td>
@@ -527,7 +527,7 @@ const openEditPanel = (date) => {
                       <td>{row.approval}</td>
                     </tr>
                   ))}
-              */}
+              
             </tbody>
           </table>
         </div>
