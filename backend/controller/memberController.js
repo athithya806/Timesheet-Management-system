@@ -4,10 +4,13 @@ import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 dotenv.config();
+
 // 🔑 Token generator
 function generateToken() {
   return Math.random().toString(36).substr(2) + Date.now().toString(36);
 }
+
+// 📊 Get total employees
 export const getEmployeeCount = (db) => (req, res) => {
   const sql = "SELECT COUNT(*) AS totalEmployees FROM members";
   db.query(sql, (err, results) => {
@@ -28,9 +31,13 @@ export const addMember = (db) => async (req, res) => {
     // ✅ Save image from Base64
     let savedImagePath = null;
     if (imagePath) {
-      const buffer = Buffer.from(imagePath, "base64");
-      const imageName = `member_${Date.now()}.png`;
+      // Remove data:image/png;base64, if present
+      const base64Data = imagePath.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+      const ext = imagePath.split(";")[0].split("/")[1] || "png";
+      const imageName = `member_${Date.now()}.${ext}`;
       const uploadDir = path.join("uploads", imageName);
+
       fs.writeFileSync(uploadDir, buffer);
       savedImagePath = `/uploads/${imageName}`;
     }
@@ -52,6 +59,7 @@ export const addMember = (db) => async (req, res) => {
         res.status(201).json({
           message: "Member added successfully",
           empId,
+          imagePath: savedImagePath,
         });
       });
     });
@@ -112,16 +120,18 @@ export const updateMember = (db) => async (req, res) => {
   try {
     let savedImagePath = imagePath;
 
+    // Update image if Base64 string
     if (imagePath && imagePath.length > 100) {
-      const buffer = Buffer.from(imagePath, "base64");
-      const imageName = `member_${Date.now()}.png`;
+      const base64Data = imagePath.replace(/^data:image\/\w+;base64,/, "");
+      const ext = imagePath.split(";")[0].split("/")[1] || "png";
+      const buffer = Buffer.from(base64Data, "base64");
+      const imageName = `member_${Date.now()}.${ext}`;
       const uploadDir = path.join("uploads", imageName);
       fs.writeFileSync(uploadDir, buffer);
       savedImagePath = `/uploads/${imageName}`;
     }
 
     let sql, values;
-
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
       sql = `
@@ -129,17 +139,7 @@ export const updateMember = (db) => async (req, res) => {
         SET fullName = ?, email = ?, phone = ?, empId = ?, department = ?, role = ?, password = ?, imagePath = ?
         WHERE id = ?
       `;
-      values = [
-        fullName,
-        email,
-        phone,
-        empId,
-        department,
-        role,
-        hashedPassword,
-        savedImagePath,
-        id,
-      ];
+      values = [fullName, email, phone, empId, department, role, hashedPassword, savedImagePath, id];
     } else {
       sql = `
         UPDATE members
@@ -151,7 +151,7 @@ export const updateMember = (db) => async (req, res) => {
 
     db.query(sql, values, (err) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
+      res.json({ success: true, imagePath: savedImagePath });
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -161,7 +161,6 @@ export const updateMember = (db) => async (req, res) => {
 // 🔐 Login
 export const login = (db) => async (req, res) => {
   const { email, password } = req.body;
-
   try {
     const sql = "SELECT * FROM members WHERE email = ?";
     db.query(sql, [email], async (err, results) => {
@@ -210,22 +209,19 @@ export const requestPasswordReset = (db) => async (req, res) => {
         if (err2) return res.status(500).json({ error: "DB update failed" });
 
         try {
-          let transporter = nodemailer.createTransport({
+          const transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST,
             port: process.env.EMAIL_PORT,
             secure: false,
-
             auth: {
               user: process.env.EMAIL_USER,
               pass: process.env.EMAIL_PASS,
             },
-            // ⚠️ replace with app password
           });
 
           const resetLink = `http://localhost:3000/reset-password?token=${token}`;
-
           const mailOptions = {
-            from: '"Your App Name"<${process.env.EMAIL_USER}>',
+            from: `"Your App Name" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "Password Reset",
             html: `
@@ -241,7 +237,7 @@ export const requestPasswordReset = (db) => async (req, res) => {
           return res.json({ success: true, message: "Reset link sent to email" });
         } catch (mailError) {
           console.error("Mail sending failed:", mailError);
-return res.status(500).json({ error: "Failed to send reset email" });
+          return res.status(500).json({ error: "Failed to send reset email" });
         }
       }
     );
