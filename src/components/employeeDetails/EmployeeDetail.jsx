@@ -75,6 +75,18 @@ const maxHour = 19;
     const displayHour = hour % 12 || 12;
     return `${displayHour} ${suffix}`;
   };
+// Fix timeline header range: 9 to 18
+
+
+const STATIC_TIMELINE_HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 9 to 17
+const timelineHeaders = STATIC_TIMELINE_HOURS.map(hour => {
+  const to12 = (h) => {
+    const mer = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12} ${mer}`;
+  };
+  return `${to12(hour)} - ${to12(hour + 1)}`;
+});
 
   const formatDate = (date) => {
     const d = date instanceof Date ? date : new Date(date);
@@ -167,7 +179,7 @@ const generateTimelineHeaders = (startHour, endHour) => {
   return headers;
 };
 // Example inside EmployeeDetail.jsx component
-const headers = generateTimelineHeaders(selectedDate);
+// const headers = generateTimelineHeaders(selectedDate);
 
   // Open/close panels
 // Open/close panels
@@ -306,19 +318,19 @@ const openEditPanel = (date) => {
     const checkIn = padTime(checkInOut.checkIn);
     const checkOut = padTime(checkInOut.checkOut);
    
-    const hourBlocks = [];
-    for (let hour = 10; hour <= 18; hour++) {
-      if (hour === 13) continue; // skip lunch break
-      const details = dayData[hour] || {};
-      hourBlocks.push({
-        hour: formatHourRange(hour),
-        projectType: details.type || "",
-        projectCategory: details.category || "",
-        projectName: details.name || "",
-        projectPhase: details.phase || "",
-        projectTask: details.task || "",
-      });
-    }
+   const hourBlocks = [];
+getHourlySlots().forEach(hour => {
+  const details = dayData[hour] || {};
+  hourBlocks.push({
+    hour: formatHourRange(hour),
+    projectType: details.type || "",
+    projectCategory: details.category || "",
+    projectName: details.name || "",
+    projectPhase: details.phase || "",
+    projectTask: details.task || "",
+  });
+});
+
     const email = localStorage.getItem("userEmail");
     const body = {
       date,
@@ -533,13 +545,13 @@ const openEditPanel = (date) => {
         </div>
       ) : activeTab === "timeline" ? (
         <div className="timeline-view">
-          <div className="timeline-header">
-            <div className="date-cell">Date</div>
-        {headers.map((h, i) => (
-      <th key={i}>{h}</th>
-    ))}
-            <div className="approval-cell">Edit</div>
-          </div>
+       <div className="timeline-header">
+  <div className="date-cell">Date</div>
+  {timelineHeaders.map((h, i) => (
+    <th key={i}>{h}</th>
+  ))}
+  <div className="approval-cell">Edit</div>
+</div>
 
           {daysInMonth.map((date, index) => {
             const formatted = formatDate(date);
@@ -551,7 +563,7 @@ const openEditPanel = (date) => {
                 <div className="date-cell">{formatted}</div>
 
                 {[...Array(9)].map((_, hourIdx) => {
-                  const hour = 10 + hourIdx;
+                  const hour = 9 + hourIdx;
                   const block = hourBlocks.find(
                     (b) =>
                       b.hour === formatHourRange(hour) ||
