@@ -76,6 +76,18 @@ const maxHour = 19;
     return `${displayHour} ${suffix}`;
   };
 // Fix timeline header range: 9 to 18
+// Totals: { [projectName]: { [phaseName]: count, ... }, ... }
+const projectPhaseTotals = {};
+timecardData.forEach(row => {
+  const blocks = JSON.parse(row.hourBlocks || "[]");
+  blocks.forEach(block => {
+    const project = block.projectName || "-";
+    const phase = block.projectPhase || "-";
+    if (!projectPhaseTotals[project]) projectPhaseTotals[project] = {};
+    if (!projectPhaseTotals[project][phase]) projectPhaseTotals[project][phase] = 0;
+    projectPhaseTotals[project][phase] += 1;
+  });
+});
 
 
 const STATIC_TIMELINE_HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 9 to 17
@@ -522,9 +534,9 @@ getHourlySlots().forEach(hour => {
                 <th>Date</th>
                 <th>Check-in</th>
                 <th>Check-out</th>
-                <th>Meal Break</th>
-                <th>Work Hours</th>
-                <th>Approval</th>
+                <th>Project</th>
+       <th>Phase</th>
+      <th>Total Hours</th>
               </tr>
             </thead>
             <tbody>
@@ -534,9 +546,15 @@ getHourlySlots().forEach(hour => {
                       <td>{formatDate(row.date)}</td>
                       <td>{row.checkIn}</td>
                       <td>{row.checkOut}</td>
-                      <td>{row.mealBreak}</td>
-                      <td>{row.workHours}</td>
-                      <td>{row.approval}</td>
+                   {Object.entries(projectPhaseTotals).map(([project, phases]) =>
+      Object.entries(phases).map(([phase, hours], idx) => (
+        <tr key={project + phase}>
+          <td>{project}</td>
+          <td>{phase}</td>
+          <td>{hours}</td>
+        </tr>
+      ))
+    )}
                     </tr>
                   ))}
               
