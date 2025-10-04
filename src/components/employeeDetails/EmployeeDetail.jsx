@@ -433,7 +433,7 @@ const openEditPanel = (date) => {
           className="profile-pic"
         />
         <div className="profile-info">
-          <h2>{employee.name || "Name not loaded"}</h2>
+          <h2>{employee.fullName || "Name not loaded"}</h2>
           <p className="role">{employee.role || "Role not loaded"}</p>
         </div>
         <div className="hours-summary">
