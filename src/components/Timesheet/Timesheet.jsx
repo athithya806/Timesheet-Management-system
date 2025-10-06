@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Search, FileText } from "lucide-react";
+import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./Timesheet.css";
+
+const DEPARTMENTS = [
+  "Innovative Manufacturing",
+  "Smart Factory Center",
+  "AR | VR | MR Research Centre",
+  "Digital Technology",
+  "Research Centre For PLM",
+  "Research Centre For Asset Performance",
+  "Product Innovation Center",
+  "Predictive Engineering",
+];
+
+const ROLES = ["admin", "employee"];
 
 const Timesheet = () => {
   const navigate = useNavigate();
@@ -10,6 +23,17 @@ const Timesheet = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    empId: "",
+    department: "",
+    role: "",
+    password: "",
+  });
 
   const handleTabClick = (tab) => {
     if (tab === "addEmployee") return navigate("/add_employee");
@@ -28,7 +52,6 @@ const Timesheet = () => {
         return res.json();
       })
       .then((data) => {
-        console.log("Fetched employees:", data); // debug
         setEmployees(data);
         setLoading(false);
       })
@@ -54,6 +77,51 @@ const Timesheet = () => {
   const filteredEmployees = employees.filter((emp) =>
     emp.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Open edit popup
+  const openEditModal = (emp) => {
+    setSelectedEmployee(emp);
+    setFormData({
+      fullName: emp.fullName,
+      email: emp.email,
+      phone: emp.phone || "",
+      empId: emp.empId,
+      department: emp.department || "",
+      role: emp.role || "",
+      password: emp.password || "",
+    });
+    setShowEditModal(true);
+  };
+
+  // Handle input change inside modal
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Save edited employee
+  const handleSaveEdit = () => {
+    fetch(`http://localhost:3001/api/members/${selectedEmployee.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setEmployees((prev) =>
+            prev.map((emp) =>
+              emp.id === selectedEmployee.id ? { ...emp, ...formData } : emp
+            )
+          );
+          setShowEditModal(false);
+          setSelectedEmployee(null);
+        } else {
+          alert("Failed to update employee");
+        }
+      })
+      .catch((err) => console.error("Update error:", err));
+  };
 
   return (
     <div className="container">
@@ -88,28 +156,6 @@ const Timesheet = () => {
           </button>
         </div>
 
-        {/* Period Section */}
-        {/* <div className="period">
-          <div>
-            <p className="period-label">Time period:</p>
-            <p className="period-value">1st Jun – 31st Jul 2022</p>
-          </div>
-          <div className="buttons">
-            <button className="btn light">
-              <FileText size={16} /> Create Report
-            </button>
-          </div>
-        </div> */}
-
-        {/* Calendar */}
-        {/* <div className="calendar">
-          {[...Array(31)].map((_, i) => (
-            <div key={i} className={`day ${i < 21 ? "green" : "red"}`}>
-              {i + 1}
-            </div>
-          ))}
-        </div> */}
-
         {/* Search Bar */}
         <div className="search-bar">
           <div className="search">
@@ -123,7 +169,7 @@ const Timesheet = () => {
           </div>
         </div>
 
-        {/* Employee List */}
+        {/* Employee Table */}
         {activeTab === "employeeList" && (
           <>
             {loading && <p>Loading employees...</p>}
@@ -147,29 +193,29 @@ const Timesheet = () => {
                       className="clickable-row"
                       onClick={() => handleRowClick(emp.id)}
                     >
-                    <td>
-  {emp.imagePath ? (
-    <img
-      src={
-        emp.imagePath.startsWith("/uploads")
-          ? `http://localhost:3001${emp.imagePath}`
-          : `http://localhost:3001/uploads/${emp.imagePath}`
-      }
-      alt={emp.fullName}
-      className="profile-img"
-      onError={(e) => {
-        console.error("Image load error:", emp.imagePath);
-        e.target.onerror = null;
-        e.target.src = "https://ui-avatars.com/api/?name=" + emp.fullName;
-      }}
-    />
-  ) : (
-    <div className="profile-placeholder">
-      {emp.fullName?.charAt(0)}
-    </div>
-  )}
-</td>
-
+                      <td>
+                        {emp.imagePath ? (
+                          <img
+                            src={
+                              emp.imagePath.startsWith("/uploads")
+                                ? `http://localhost:3001${emp.imagePath}`
+                                : `http://localhost:3001/uploads/${emp.imagePath}`
+                            }
+                            alt={emp.fullName}
+                            className="profile-img"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src =
+                                "https://ui-avatars.com/api/?name=" +
+                                emp.fullName;
+                            }}
+                          />
+                        ) : (
+                          <div className="profile-placeholder">
+                            {emp.fullName?.charAt(0)}
+                          </div>
+                        )}
+                      </td>
                       <td>{emp.empId}</td>
                       <td>{emp.fullName}</td>
                       <td>{emp.email}</td>
@@ -179,7 +225,7 @@ const Timesheet = () => {
                           className="btn small"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/edit_employee/${emp.id}`);
+                            openEditModal(emp);
                           }}
                         >
                           ✏️
@@ -219,6 +265,101 @@ const Timesheet = () => {
               </table>
             )}
           </>
+        )}
+
+        {/* Edit Popup */}
+        {showEditModal && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0,0,0,0.5)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                background: "#fff",
+                padding: "20px",
+                borderRadius: "10px",
+                width: "400px",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+              }}
+            >
+              <h3>Edit Employee</h3>
+
+              <label>Name:</label>
+              <input
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+              />
+
+              <label>Email:</label>
+              <input
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+              />
+
+              <label>Phone:</label>
+              <input
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+              />
+
+              <label>Department:</label>
+              <select
+                name="department"
+                value={formData.department}
+                onChange={handleInputChange}
+              >
+                <option value="">Select Department</option>
+                {DEPARTMENTS.map((dept, i) => (
+                  <option key={i} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+
+              <label>Role:</label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+              >
+                <option value="">Select Role</option>
+                {ROLES.map((role, i) => (
+                  <option key={i} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+
+              <div style={{ marginTop: "10px", textAlign: "right" }}>
+                <button
+                  className="btn small"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn small"
+                  style={{ marginLeft: "10px" }}
+                  onClick={handleSaveEdit}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
