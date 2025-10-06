@@ -42,8 +42,6 @@ const Timesheet = () => {
     setActiveTab(tab);
   };
 
-  const handleRowClick = (id) => navigate(`/employee/${id}`);
-
   const fetchEmployees = () => {
     setLoading(true);
     fetch("http://localhost:3001/api/members")
@@ -188,11 +186,7 @@ const Timesheet = () => {
                 </thead>
                 <tbody>
                   {filteredEmployees.map((emp) => (
-                    <tr
-                      key={emp.id}
-                      className="clickable-row"
-                      onClick={() => handleRowClick(emp.id)}
-                    >
+                    <tr key={emp.id}>
                       <td>
                         {emp.imagePath ? (
                           <img
@@ -223,17 +217,13 @@ const Timesheet = () => {
                       <td>
                         <button
                           className="btn small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditModal(emp);
-                          }}
+                          onClick={() => openEditModal(emp)}
                         >
                           ✏️
                         </button>
                         <button
                           className="btn small"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                          onClick={() => {
                             if (
                               window.confirm(
                                 `Are you sure you want to delete ${emp.fullName}?`
