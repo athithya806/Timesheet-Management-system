@@ -21,13 +21,11 @@ const Project = () => {
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
-    // Fetch projects
     fetch("http://localhost:3001/getProjects")
       .then((res) => res.json())
       .then((data) => setProjects(data))
       .catch((err) => console.error(err));
 
-    // Fetch members
     fetch("http://localhost:3001/api/members")
       .then((res) => res.json())
       .then((data) => setMembers(data))
@@ -38,15 +36,17 @@ const Project = () => {
     navigate(`/employee/${employeeId}`);
   };
 
-  // Filter employees for a department based on their actual department
+  // Robust employee filter
   const getEmployeesForDept = (proj, dept) => {
     if (!proj.assignedMembers || !proj.assignedMembers.length) return [];
 
     return members.filter(
       (m) =>
+        m.fullName && // only if fullName exists
         proj.assignedMembers.some(
-          (memberName) => m.fullName.toLowerCase() === memberName.toLowerCase()
-        ) && m.department === dept
+          (memberName) => memberName && m.fullName.toLowerCase() === memberName.toLowerCase()
+        ) &&
+        m.department === dept
     );
   };
 
@@ -54,9 +54,8 @@ const Project = () => {
     <div className="project-container">
       <h1>Project Roles</h1>
       {DEPARTMENTS.map((dept) => {
-        // Only include projects that have this department
-        const deptProjects = projects.filter((proj) =>
-          proj.departments?.includes(dept)
+        const deptProjects = projects.filter(
+          (proj) => proj.departments?.includes(dept)
         );
 
         return (
@@ -79,14 +78,18 @@ const Project = () => {
                   deptProjects.map((proj, projIndex) => {
                     const employeesInDept = getEmployeesForDept(proj, dept);
 
-                    // If no employees in this department, show message
                     if (employeesInDept.length === 0) {
                       return (
                         <tr key={projIndex}>
-                          <td>{proj.projectName}</td>
+                          <td>{proj.projectName || "Unnamed Project"}</td>
                           <td>
-                            {new Date(proj.plannedStartDate).toLocaleDateString()} -{" "}
-                            {new Date(proj.plannedEndDate).toLocaleDateString()}
+                            {proj.plannedStartDate
+                              ? new Date(proj.plannedStartDate).toLocaleDateString()
+                              : "N/A"}{" "}
+                            -{" "}
+                            {proj.plannedEndDate
+                              ? new Date(proj.plannedEndDate).toLocaleDateString()
+                              : "N/A"}
                           </td>
                           <td>40</td>
                           <td>
@@ -103,15 +106,19 @@ const Project = () => {
                       );
                     }
 
-                    // Show project row with all employees listed for this department
                     return employeesInDept.map((emp, empIndex) => (
                       <tr key={`${projIndex}-${empIndex}`}>
                         {empIndex === 0 && (
                           <>
-                            <td rowSpan={employeesInDept.length}>{proj.projectName}</td>
+                            <td rowSpan={employeesInDept.length}>{proj.projectName || "Unnamed Project"}</td>
                             <td rowSpan={employeesInDept.length}>
-                              {new Date(proj.plannedStartDate).toLocaleDateString()} -{" "}
-                              {new Date(proj.plannedEndDate).toLocaleDateString()}
+                              {proj.plannedStartDate
+                                ? new Date(proj.plannedStartDate).toLocaleDateString()
+                                : "N/A"}{" "}
+                              -{" "}
+                              {proj.plannedEndDate
+                                ? new Date(proj.plannedEndDate).toLocaleDateString()
+                                : "N/A"}
                             </td>
                             <td rowSpan={employeesInDept.length}>40</td>
                             <td rowSpan={employeesInDept.length}>
@@ -127,22 +134,22 @@ const Project = () => {
                           className="employee-name"
                           onClick={() => handleEmployeeClick(emp.id)}
                         >
-                          {emp.fullName}
+                          {emp.fullName || "Unnamed Employee"}
                         </td>
                         <td>
                           <span
                             className={`role-badge ${emp.role?.replace(/\s+/g, "-").toLowerCase() || "employee"}`}
-                            style={{ color: "black" }} // make text black
+                            style={{ color: "black" }}
                           >
                             {emp.role || "Employee"}
                           </span>
                         </td>
                         <td>
                           <span
-                            className={`status-badge ${proj.status.replace(/\s+/g, "-").toLowerCase()}`}
-                            style={{ color: "black" }} // make text black
+                            className={`status-badge ${proj.status?.replace(/\s+/g, "-").toLowerCase() || "unknown"}`}
+                            style={{ color: "black" }}
                           >
-                            {proj.status}
+                            {proj.status || "Unknown"}
                           </span>
                         </td>
                       </tr>

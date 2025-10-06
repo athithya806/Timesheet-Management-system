@@ -33,6 +33,7 @@ const Timesheet = () => {
     department: "",
     role: "",
     password: "",
+    imagePath: "", // ✅ added imagePath
   });
 
   const handleTabClick = (tab) => {
@@ -41,6 +42,8 @@ const Timesheet = () => {
     if (tab === "dashboard") return navigate("/dashboard");
     setActiveTab(tab);
   };
+
+  const handleRowClick = (id) => navigate(`/employee/${id}`);
 
   const fetchEmployees = () => {
     setLoading(true);
@@ -87,6 +90,7 @@ const Timesheet = () => {
       department: emp.department || "",
       role: emp.role || "",
       password: emp.password || "",
+      imagePath: emp.imagePath || "", // ✅ preserve imagePath
     });
     setShowEditModal(true);
   };
@@ -186,7 +190,11 @@ const Timesheet = () => {
                 </thead>
                 <tbody>
                   {filteredEmployees.map((emp) => (
-                    <tr key={emp.id}>
+                    <tr
+                      key={emp.id}
+                      className="clickable-row"
+                      onClick={() => handleRowClick(emp.id)}
+                    >
                       <td>
                         {emp.imagePath ? (
                           <img
@@ -217,13 +225,17 @@ const Timesheet = () => {
                       <td>
                         <button
                           className="btn small"
-                          onClick={() => openEditModal(emp)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditModal(emp);
+                          }}
                         >
                           ✏️
                         </button>
                         <button
                           className="btn small"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (
                               window.confirm(
                                 `Are you sure you want to delete ${emp.fullName}?`
