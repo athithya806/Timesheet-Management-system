@@ -8,6 +8,10 @@ import AddEmployee from "./components/Admin/add_employee/add_employee.jsx";
 import AddProject from "./components/Admin/add_project/add_project.jsx"; 
 import LoginPage from "./components/login_page/login.jsx"; 
 
+
+import ForgotPassword from "./components/login_page/ForgotPassword";
+import ResetPassword from "./components/login_page/ResetPassword";
+
 function App() {
   return (
     <Router>
@@ -35,7 +39,9 @@ function App() {
 
         {/* Employee details route */}
         <Route path="/employee" element={<EmployeeDetail />} />
-
+          <Route path="/authentication/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+        
         {/* Catch-all redirect to login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
