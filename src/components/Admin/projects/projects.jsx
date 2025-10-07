@@ -36,13 +36,17 @@ const Project = () => {
     navigate(`/employee/${employeeId}`);
   };
 
+  const handleEditProject = (proj) => {
+    navigate("/add_project", { state: { projectData: proj } });
+  };
+
   // Robust employee filter
   const getEmployeesForDept = (proj, dept) => {
     if (!proj.assignedMembers || !proj.assignedMembers.length) return [];
 
     return members.filter(
       (m) =>
-        m.fullName && // only if fullName exists
+        m.fullName &&
         proj.assignedMembers.some(
           (memberName) => memberName && m.fullName.toLowerCase() === memberName.toLowerCase()
         ) &&
@@ -71,6 +75,7 @@ const Project = () => {
                   <th>Employee</th>
                   <th>Role</th>
                   <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -101,6 +106,15 @@ const Project = () => {
                           </td>
                           <td colSpan={3} style={{ textAlign: "center", fontStyle: "italic" }}>
                             No employees assigned in this department
+                          </td>
+                          <td style={{ textAlign: "center" }}>
+                            <button
+                              className="btn small"
+                              onClick={() => handleEditProject(proj)}
+                              title="Edit Project"
+                            >
+                              ✏️
+                            </button>
                           </td>
                         </tr>
                       );
@@ -152,12 +166,21 @@ const Project = () => {
                             {proj.status || "Unknown"}
                           </span>
                         </td>
+                        <td style={{ textAlign: "center" }}>
+                          <button
+                            className="btn small"
+                            onClick={() => handleEditProject(proj)}
+                            title="Edit Project"
+                          >
+                            ✏️
+                          </button>
+                        </td>
                       </tr>
                     ));
                   })
                 ) : (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: "center", fontStyle: "italic" }}>
+                    <td colSpan="8" style={{ textAlign: "center", fontStyle: "italic" }}>
                       No projects assigned yet
                     </td>
                   </tr>
