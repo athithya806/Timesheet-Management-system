@@ -98,7 +98,7 @@ const AddEmployee = () => {
       if (!res.ok) throw new Error("Failed to save employee");
 
       alert(isEditMode ? "Employee updated successfully!" : "Employee added successfully!");
-      navigate("/timesheet");
+      navigate("/employee");
     } catch (error) {
       alert("Failed to save employee: " + error.message);
     }
