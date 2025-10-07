@@ -77,17 +77,17 @@ const maxHour = 19;
   };
 // Fix timeline header range: 9 to 18
 // Totals: { [projectName]: { [phaseName]: count, ... }, ... }
-const projectPhaseTotals = {};
-timecardData.forEach(row => {
-  const blocks = JSON.parse(row.hourBlocks || "[]");
-  blocks.forEach(block => {
-    const project = block.projectName || "-";
-    const phase = block.projectPhase || "-";
-    if (!projectPhaseTotals[project]) projectPhaseTotals[project] = {};
-    if (!projectPhaseTotals[project][phase]) projectPhaseTotals[project][phase] = 0;
-    projectPhaseTotals[project][phase] += 1;
-  });
-});
+// const projectPhaseTotals = {};
+// timecardData.forEach(row => {
+//   const blocks = JSON.parse(row.hourBlocks || "[]");
+//   blocks.forEach(block => {
+//     const project = block.projectName || "-";
+//     const phase = block.projectPhase || "-";
+//     if (!projectPhaseTotals[project]) projectPhaseTotals[project] = {};
+//     if (!projectPhaseTotals[project][phase]) projectPhaseTotals[project][phase] = 0;
+//     projectPhaseTotals[project][phase] += 1;
+//   });
+// });
 
 
 const STATIC_TIMELINE_HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 9 to 17
@@ -528,38 +528,62 @@ getHourlySlots().forEach(hour => {
       {/* Timecard View */}
       {activeTab === "timecard" ? (
         <div className="timecard-view">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Project</th>
-       <th>Phase</th>
-      <th>Total Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-            
-                  {timecardData.map((row, idx) => (
-                    <tr key={idx}>
-                      <td>{formatDate(row.date)}</td>
-                      <td>{row.checkIn}</td>
-                      <td>{row.checkOut}</td>
-                   {Object.entries(projectPhaseTotals).map(([project, phases]) =>
-      Object.entries(phases).map(([phase, hours], idx) => (
-        <tr key={project + phase}>
-          <td>{project}</td>
-          <td>{phase}</td>
-          <td>{hours}</td>
+          {/* ---- Project/Phase Total Summary (Date-wise) ---- */}
+{timecardData && timecardData.length > 0 && (
+  <div className="project-phase-summary" style={{ marginTop: "2rem" }}>
+    <h4>Project / Phase Total Hours (Date-wise)</h4>
+    <table className="table summary-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Check-in</th>
+          <th>Check-out</th>
+          <th>Project</th>
+          <th>Phase</th>
+          <th>Total Hours</th>
         </tr>
-      ))
-    )}
-                    </tr>
-                  ))}
-              
-            </tbody>
-          </table>
+      </thead>
+      <tbody>
+  {timecardData.map((row, idx) => {
+    const blocks = JSON.parse(row.hourBlocks || "[]");
+
+    // Compute total hours per project and phase
+    const projectPhaseHours = {};
+    blocks.forEach((b) => {
+      const project = b.projectName || "-";
+      const phase = b.projectPhase || "-";
+      if (!projectPhaseHours[project]) projectPhaseHours[project] = {};
+      if (!projectPhaseHours[project][phase]) projectPhaseHours[project][phase] = 0;
+      projectPhaseHours[project][phase] += 1; // 1 hour per block
+    });
+
+    // Flatten data so each project is one row, phases concatenated
+    return Object.entries(projectPhaseHours).map(([project, phases], projectIdx) => {
+      const phaseDetails = Object.entries(phases)
+        .map(([phase, hours]) => `${phase}: ${hours}`)
+        .join(", ");
+
+      // Only show date/check-in/check-out on the first project row for that date
+      const showDate = projectIdx === 0;
+
+      return (
+        <tr key={`${idx}-${project}`}>
+          <td>{showDate ? formatDate(row.date) : ""}</td>
+          <td>{showDate ? row.checkIn : ""}</td>
+          <td>{showDate ? row.checkOut : ""}</td>
+          <td>{project}</td>
+          <td>{phaseDetails}</td>
+          <td>{Object.values(phases).reduce((a, b) => a + b, 0)}</td>
+        </tr>
+      );
+    });
+  })}
+</tbody>
+
+    </table>
+  </div>
+)}
+
         </div>
       ) : activeTab === "timeline" ? (
         <div className="timeline-view">
