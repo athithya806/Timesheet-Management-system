@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import "./EmployeeDetail.css";
+import "./timesheetDetail.css";
 
-const EmployeeDetail = () => {
+const TimesheetDetail = () => {
   const { id } = useParams();
 
   // State declarations
@@ -824,4 +824,4 @@ getHourlySlots().forEach(hour => {
   );
 };
 
-export default EmployeeDetail;
+export default TimesheetDetail;

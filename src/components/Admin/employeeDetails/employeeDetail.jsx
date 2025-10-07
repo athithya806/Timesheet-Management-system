@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import "./Timesheet.css";
+import "./employeeDetail.css";
 
 const DEPARTMENTS = [
   "Innovative Manufacturing",
@@ -16,7 +16,7 @@ const DEPARTMENTS = [
 
 const ROLES = ["admin", "employee"];
 
-const Timesheet = () => {
+const EmployeeDetail = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("employeeList");
   const [employees, setEmployees] = useState([]);
@@ -201,4 +201,4 @@ const Timesheet = () => {
   );
 };
 
-export default Timesheet;
+export default EmployeeDetail;

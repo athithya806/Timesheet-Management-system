@@ -59,13 +59,13 @@ export default function LoginPage() {
       //   navigate("/dashboard/admin");
       // }
       if (data.role === "admin") {
-        navigate("/timesheet");
+        navigate("/employee");
       }
       // else if (data.role === "employee") {
       //   navigate("/dashboard");
       // }
       else if (data.role === "employee") {
-        navigate(`/employee`);
+        navigate(`/timesheet`);
       } else if (data.role === "tl") {
         navigate("/tldashboard");
       } else if (data.role === "hr") {

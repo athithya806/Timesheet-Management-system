@@ -1,11 +1,11 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./components/dashboard/dashboard.jsx";
-import Timesheet from "./components/Timesheet/Timesheet.jsx";
-import EmployeeDetail from "./components/employeeDetails/EmployeeDetail.jsx";
-import Project from "./components/projects/projects.jsx"; 
-import AddEmployee from "./components/add_employee/add_employee.jsx"; 
-import AddProject from "./components/add_project/add_project.jsx"; 
+import TimesheetDetail from "./components/timesheetDetails/timesheetDetail.jsx";
+import EmployeeDetail from "./components/Admin/employeeDetails/employeeDetail.jsx";
+import Project from "./components/Admin/projects/projects.jsx"; 
+import AddEmployee from "./components/Admin/add_employee/add_employee.jsx"; 
+import AddProject from "./components/Admin/add_project/add_project.jsx"; 
 import LoginPage from "./components/login_page/login.jsx"; 
 
 function App() {
@@ -22,7 +22,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
 
         {/* Timesheet route */}
-        <Route path="/timesheet" element={<Timesheet />} />
+        <Route path="/timesheet" element={<TimesheetDetail />} />
 
         {/* Projects route */}
         <Route path="/projects" element={<Project />} />
