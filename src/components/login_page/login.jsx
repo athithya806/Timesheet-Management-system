@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // ✅ Fix: Added Link here
 import "./login.css";
+import "./ForgotPassword";
+import "./ResetPassword";
 
 export default function LoginPage() {
   const gridRef = useRef(null);
   const particlesRef = useRef(null);
   const rafRef = useRef(null);
-  // const navigate = useNavigate(); // Removed duplicate declaration
+  // Removed duplicate declaration
   const [loading, setLoading] = useState(false);
   const speedMultiplier = useRef(1);
 
@@ -286,6 +288,8 @@ export default function LoginPage() {
           <button type="submit" className={loading ? "loading" : ""}>
             {loading ? "Logging in..." : "Login"}
           </button>
+            <Link to="/authentication/forgot-password">Forgot Password?</Link>
+
         </form>
       </div>
     </div>
