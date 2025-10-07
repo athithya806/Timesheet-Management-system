@@ -1,0 +1,171 @@
+.sidebar {
+  position: relative;
+  width: 270px;
+  height: 95vh;
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: "Inter", sans-serif;
+}
+
+/* ===== FLOWING BACKGROUND ===== */
+.flow-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, #eaf2ff, #f4f8ff, #eaf2ff);
+  background-size: 400% 400%;
+  animation: flow 15s ease infinite;
+  z-index: 0;
+  filter: brightness(1.05);
+}
+
+@keyframes flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ===== HEADER ===== */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+
+.logo {
+  color: #0056ff;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.menu-icon {
+  font-size: 22px;
+  cursor: pointer;
+  color: #333;
+}
+
+/* ===== BOTTOM SECTION ===== */
+.bottom-section {
+  margin-top: auto;
+  position: relative;
+  z-index: 2;
+}
+
+/* ===== MENU ITEMS ===== */
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.menu-item svg {
+  font-size: 18px;
+}
+
+/* glowing animation on hover */
+.menu-item:hover {
+  background: rgba(0, 86, 255, 0.08);
+  color: #0056ff;
+}
+
+/* Active (clicked) state */
+.menu-item.active {
+  background: linear-gradient(90deg, #0056ff, #007aff);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 86, 255, 0.25);
+}
+
+/* ripple / glow effect */
+.hover-glow {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--x, 50%) var(--y, 50%),
+    rgba(0, 136, 255, 0.2),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.menu-item:hover .hover-glow {
+  opacity: 1;
+}
+
+/* logout specific color */
+.logout {
+  color: #d9534f;
+}
+
+.logout:hover {
+  background: #fdecec;
+  color: #c9302c;
+}
+
+.logout.active {
+  background: linear-gradient(90deg, #d9534f, #ff6666);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(217, 83, 79, 0.25);
+}
+
+/* ===== FOOTER ===== */
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 15px;
+}
+
+.profile-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.user-info {
+  font-size: 13px;
+  color: #333;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.email {
+  font-size: 12px;
+  color: #777;
+}
