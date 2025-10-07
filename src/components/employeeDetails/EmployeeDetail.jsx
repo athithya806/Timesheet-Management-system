@@ -449,24 +449,40 @@ getHourlySlots().forEach(hour => {
         <h1>Time & Attendance</h1>
       </div>
 
-      {/* Profile Section */}
+     {/* Profile Section */}
       <div className="profile-section">
-        <img
-          src="https://via.placeholder.com/60"
-          alt={employee.name || "Employee"}
-          className="profile-pic"
-        />
+        {employee.imagePath ? (
+          <img
+            src={
+              employee.imagePath.startsWith("/uploads")
+                ? `http://localhost:3001${employee.imagePath}`
+                : `http://localhost:3001/uploads/${employee.imagePath}`
+            }
+            alt={employee.fullName || "Employee"}
+            className="profile-pic"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = `https://ui-avatars.com/api/?name=${employee.fullName}`;
+            }}
+          />
+        ) : (
+          <div className="profile-placeholder">
+            {employee.fullName?.charAt(0) || "E"}
+          </div>
+        )}
+
         <div className="profile-info">
           <h2>{employee.fullName || "Name not loaded"}</h2>
           <p className="role">{employee.role || "Role not loaded"}</p>
         </div>
+
         <div className="hours-summary">
           <p className="total">{employee.totalHours || 0} hrs Total</p>
           <p>{employee.regularHours || 0} hrs Regular</p>
-   
           <p>{employee.holidayHours || 0} hrs Holiday</p>
         </div>
       </div>
+
 
       {/* Progress Bar */}
       <div className="progress-section">
@@ -516,14 +532,14 @@ getHourlySlots().forEach(hour => {
             </div>
 
       {/* Actions */}
-      <div className="actions">
+      {/* <div className="actions">
         <label className="checkbox">
           <input type="checkbox" /> Show only unapproved days
         </label>
         <button className="btn light">Add Time Off</button>
         <button className="btn reject">Reject All</button>
         <button className="btn approve">Approve All</button>
-      </div>
+      </div> */}
 
       {/* Timecard View */}
       {activeTab === "timecard" ? (

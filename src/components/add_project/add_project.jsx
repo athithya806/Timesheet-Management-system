@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./add_project.css";
 
 const DEPARTMENTS = [
@@ -13,26 +14,28 @@ const DEPARTMENTS = [
 ];
 
 const AddProject = () => {
-  const [projectName, setProjectName] = useState("");
-  const [clientName, setClientName] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("ongoing");
-  const [plannedStartDate, setPlannedStartDate] = useState("");
-  const [plannedEndDate, setPlannedEndDate] = useState("");
-  const [actualStartDate, setActualStartDate] = useState("");
-  const [actualEndDate, setActualEndDate] = useState("");
-  const [assignedMembers, setAssignedMembers] = useState([]);
-  const [projectType, setProjectType] = useState("billable");
-  const [phases, setPhases] = useState([]);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const projectData = location.state?.projectData || {};
 
-  // Members multi-select
+  const [projectName, setProjectName] = useState(projectData.projectName || "");
+  const [clientName, setClientName] = useState(projectData.clientName || "");
+  const [description, setDescription] = useState(projectData.description || "");
+  const [status, setStatus] = useState(projectData.status || "ongoing");
+  const [plannedStartDate, setPlannedStartDate] = useState(projectData.plannedStartDate || "");
+  const [plannedEndDate, setPlannedEndDate] = useState(projectData.plannedEndDate || "");
+  const [actualStartDate, setActualStartDate] = useState(projectData.actualStartDate || "");
+  const [actualEndDate, setActualEndDate] = useState(projectData.actualEndDate || "");
+  const [assignedMembers, setAssignedMembers] = useState(projectData.assignedMembers || []);
+  const [projectType, setProjectType] = useState(projectData.projectType || "billable");
+  const [phases, setPhases] = useState(projectData.phases || []);
+  const [selectedDepartments, setSelectedDepartments] = useState(projectData.departments || []);
+
   const [members, setMembers] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchInput, setSearchInput] = useState("");
 
-  // Departments multi-select
-  const [selectedDepartments, setSelectedDepartments] = useState([]);
   const [deptSearchInput, setDeptSearchInput] = useState("");
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [showDeptDropdown, setShowDeptDropdown] = useState(false);
@@ -133,8 +136,14 @@ const AddProject = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:3001/addProjects", {
-        method: "POST",
+      const url = projectData.id
+        ? `http://localhost:3001/updateProject/${projectData.id}` // PUT endpoint for edit
+        : "http://localhost:3001/addProjects"; // POST for new
+
+      const method = projectData.id ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newProject),
       });
@@ -145,21 +154,8 @@ const AddProject = () => {
       }
 
       const data = await response.json();
-      alert(data.message || "Project added successfully");
-
-      // Reset form
-      setProjectName("");
-      setClientName("");
-      setDescription("");
-      setStatus("ongoing");
-      setPlannedStartDate("");
-      setPlannedEndDate("");
-      setActualStartDate("");
-      setActualEndDate("");
-      setAssignedMembers([]);
-      setProjectType("billable");
-      setPhases([]);
-      setSelectedDepartments([]);
+      alert(data.message || (projectData.id ? "Project updated successfully" : "Project added successfully"));
+      navigate("/projects");
     } catch (err) {
       alert("❌ " + err.message);
     }
@@ -167,9 +163,7 @@ const AddProject = () => {
 
   return (
     <div className="form-container">
-      <div className="form-tabs">
-        <div className="form-tab active">Project Details</div>
-      </div>
+      <h2>{projectData.projectName ? "Edit Project" : "Add Project"}</h2>
 
       <form onSubmit={handleSubmit}>
         {/* Project Info */}
@@ -185,7 +179,6 @@ const AddProject = () => {
               required
             />
           </div>
-
           <div className="form-group">
             <label className="form-label">Client Name</label>
             <input
@@ -196,7 +189,6 @@ const AddProject = () => {
               onChange={(e) => setClientName(e.target.value)}
             />
           </div>
-
           <div className="form-group">
             <label className="form-label">Project Type</label>
             <select
@@ -219,13 +211,7 @@ const AddProject = () => {
               {assignedMembers.map((m) => (
                 <span key={m} className="chip">
                   {m}
-                  <button
-                    type="button"
-                    className="chip-close"
-                    onClick={() => handleRemoveMember(m)}
-                  >
-                    ×
-                  </button>
+                  <button type="button" className="chip-close" onClick={() => handleRemoveMember(m)}>×</button>
                 </span>
               ))}
             </div>
@@ -256,13 +242,7 @@ const AddProject = () => {
               {selectedDepartments.map((d) => (
                 <span key={d} className="chip">
                   {d}
-                  <button
-                    type="button"
-                    className="chip-close"
-                    onClick={() => handleRemoveDepartment(d)}
-                  >
-                    ×
-                  </button>
+                  <button type="button" className="chip-close" onClick={() => handleRemoveDepartment(d)}>×</button>
                 </span>
               ))}
             </div>
@@ -280,9 +260,7 @@ const AddProject = () => {
                   ? filteredDepartments
                   : DEPARTMENTS.filter((d) => !selectedDepartments.includes(d))
                 ).map((d) => (
-                  <li key={d} onClick={() => handleSelectDepartment(d)}>
-                    {d}
-                  </li>
+                  <li key={d} onClick={() => handleSelectDepartment(d)}>{d}</li>
                 ))}
               </ul>
             )}
@@ -349,33 +327,22 @@ const AddProject = () => {
         <div className="form-group">
           <label className="form-label">Status</label>
           <div className="gender-options">
-            <button
-              type="button"
-              className={`gender-btn ${status === "yet to start" ? "active" : ""}`}
-              onClick={() => setStatus("yet to start")}
-            >
-              Yet to Start
-            </button>
-            <button
-              type="button"
-              className={`gender-btn ${status === "ongoing" ? "active" : ""}`}
-              onClick={() => setStatus("ongoing")}
-            >
-              Ongoing
-            </button>
-            <button
-              type="button"
-              className={`gender-btn ${status === "completed" ? "active" : ""}`}
-              onClick={() => setStatus("completed")}
-            >
-              Completed
-            </button>
+            {["yet to start", "ongoing", "completed"].map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`gender-btn ${status === s ? "active" : ""}`}
+                onClick={() => setStatus(s)}
+              >
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
 
         <div className="form-actions">
           <button className="btn btn-primary" type="submit">
-            Add Project
+            {projectData.projectName ? "Update Project" : "Add Project"}
           </button>
         </div>
       </form>
