@@ -21,7 +21,7 @@ export const getEmployeeCount = (db) => (req, res) => {
 
 // ➕ Add new member
 export const addMember = (db) => async (req, res) => {
-  const { fullName, email, role, phone, department, password, imagePath } = req.body;
+  const { fullName, email, role, phone, department, password, imagePath, gender } = req.body;
 
   try {
     if (!password) return res.status(400).json({ error: "Password is required" });
@@ -31,28 +31,25 @@ export const addMember = (db) => async (req, res) => {
     // ✅ Save image from Base64
     let savedImagePath = null;
     if (imagePath) {
-      // Remove data:image/png;base64, if present
       const base64Data = imagePath.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
       const ext = imagePath.split(";")[0].split("/")[1] || "png";
       const imageName = `member_${Date.now()}.${ext}`;
       const uploadDir = path.join("uploads", imageName);
-
       fs.writeFileSync(uploadDir, buffer);
       savedImagePath = `/uploads/${imageName}`;
     }
 
     const sqlInsert = `
-      INSERT INTO members (fullName, email, phone, department, role, password, imagePath)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO members (fullName, email, phone, department, role, password, imagePath, gender)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const values = [fullName, email, phone, department, role, hashedPassword, savedImagePath];
+    const values = [fullName, email, phone, department, role, hashedPassword, savedImagePath, gender];
 
     db.query(sqlInsert, values, (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
 
       const empId = `TANSAMEMP${result.insertId.toString().padStart(3, "0")}`;
-
       db.query("UPDATE members SET empId = ? WHERE id = ?", [empId, result.insertId], (err2) => {
         if (err2) return res.status(500).json({ error: err2.message });
 
@@ -115,7 +112,7 @@ export const deleteMember = (db) => (req, res) => {
 // ✏️ Update a member
 export const updateMember = (db) => async (req, res) => {
   const { id } = req.params;
-  const { fullName, email, phone, empId, department, role, password, imagePath } = req.body;
+  const { fullName, email, phone, empId, department, role, password, imagePath, gender } = req.body;
 
   try {
     let savedImagePath = imagePath;
@@ -136,17 +133,17 @@ export const updateMember = (db) => async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, 10);
       sql = `
         UPDATE members
-        SET fullName = ?, email = ?, phone = ?, empId = ?, department = ?, role = ?, password = ?, imagePath = ?
+        SET fullName = ?, email = ?, phone = ?, empId = ?, department = ?, role = ?, password = ?, imagePath = ?, gender = ?
         WHERE id = ?
       `;
-      values = [fullName, email, phone, empId, department, role, hashedPassword, savedImagePath, id];
+      values = [fullName, email, phone, empId, department, role, hashedPassword, savedImagePath, gender, id];
     } else {
       sql = `
         UPDATE members
         SET fullName = ?, email = ?, phone = ?, empId = ?, department = ?, role = ?, imagePath = ?
         WHERE id = ?
       `;
-      values = [fullName, email, phone, empId, department, role, savedImagePath, id];
+      values = [fullName, email, phone, empId, department, role, savedImagePath, gender, id];
     }
 
     db.query(sql, values, (err) => {
@@ -168,15 +165,7 @@ export const login = (db) => async (req, res) => {
       if (results.length === 0) return res.status(401).json({ error: "Invalid credentials" });
 
       const user = results[0];
-      let isMatch = false;
-
-      try {
-        isMatch = await bcrypt.compare(password, user.password);
-      } catch {
-        isMatch = false;
-      }
-
-      if (!isMatch && user.password === password) isMatch = true;
+      const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
       res.json({
@@ -259,7 +248,6 @@ export const resetPassword = (db) => async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     db.query(
       "UPDATE members SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?",
       [hashedPassword, user.id],
