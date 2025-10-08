@@ -445,7 +445,7 @@ getHourlySlots().forEach(hour => {
     <div className="employee-detail-container">
       {/* Header */}
       <div className="header">
-        <Link to="/" className="back-link">← Back</Link>
+        {/* <Link to="/" className="back-link">← Back</Link> */}
         <h1>Time & Attendance</h1>
       </div>
 

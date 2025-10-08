@@ -18,14 +18,30 @@ const AddProject = () => {
   const navigate = useNavigate();
   const projectData = location.state?.projectData || {};
 
+  // ✅ Date formatting helper
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    return date.toISOString().split("T")[0];
+  };
+
   const [projectName, setProjectName] = useState(projectData.projectName || "");
   const [clientName, setClientName] = useState(projectData.clientName || "");
   const [description, setDescription] = useState(projectData.description || "");
   const [status, setStatus] = useState(projectData.status || "ongoing");
-  const [plannedStartDate, setPlannedStartDate] = useState(projectData.plannedStartDate || "");
-  const [plannedEndDate, setPlannedEndDate] = useState(projectData.plannedEndDate || "");
-  const [actualStartDate, setActualStartDate] = useState(projectData.actualStartDate || "");
-  const [actualEndDate, setActualEndDate] = useState(projectData.actualEndDate || "");
+  const [plannedStartDate, setPlannedStartDate] = useState(
+    formatDateForInput(projectData.plannedStartDate)
+  );
+  const [plannedEndDate, setPlannedEndDate] = useState(
+    formatDateForInput(projectData.plannedEndDate)
+  );
+  const [actualStartDate, setActualStartDate] = useState(
+    formatDateForInput(projectData.actualStartDate)
+  );
+  const [actualEndDate, setActualEndDate] = useState(
+    formatDateForInput(projectData.actualEndDate)
+  );
   const [assignedMembers, setAssignedMembers] = useState(projectData.assignedMembers || []);
   const [projectType, setProjectType] = useState(projectData.projectType || "billable");
   const [phases, setPhases] = useState(projectData.phases || []);
