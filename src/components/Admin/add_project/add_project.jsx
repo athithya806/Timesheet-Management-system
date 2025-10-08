@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./add_project.css";
 
+
 const DEPARTMENTS = [
   "Innovative Manufacturing",
   "Smart Factory Center",
@@ -44,7 +45,7 @@ const AddProject = () => {
   );
   const [assignedMembers, setAssignedMembers] = useState(projectData.assignedMembers || []);
   const [projectType, setProjectType] = useState(projectData.projectType || "billable");
-  const [phases, setPhases] = useState(projectData.phases || []);
+  const [phases] = useState(projectData.phases || []);
   const [selectedDepartments, setSelectedDepartments] = useState(projectData.departments || []);
 
   const [members, setMembers] = useState([]);
