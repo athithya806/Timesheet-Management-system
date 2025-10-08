@@ -61,3 +61,6 @@ tr:hover {
   /* background-color: #8b5cf6; purple badge */
   display: inline-block;
 }
+.hour-cell.leave {
+  background-color: #ff6b6b; /* Red for leave */
+}

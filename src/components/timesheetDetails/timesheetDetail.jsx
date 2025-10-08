@@ -560,40 +560,50 @@ getHourlySlots().forEach(hour => {
         </tr>
       </thead>
       <tbody>
-  {timecardData.map((row, idx) => {
-    const blocks = JSON.parse(row.hourBlocks || "[]");
+        {timecardData.map((row, idx) => {
+  const blocks = JSON.parse(row.hourBlocks || "[]");
 
-    // Compute total hours per project and phase
-    const projectPhaseHours = {};
-    blocks.forEach((b) => {
-      const project = b.projectName || "-";
-      const phase = b.projectPhase || "-";
-      if (!projectPhaseHours[project]) projectPhaseHours[project] = {};
-      if (!projectPhaseHours[project][phase]) projectPhaseHours[project][phase] = 0;
-      projectPhaseHours[project][phase] += 1; // 1 hour per block
-    });
+  // Compute total hours per project and phase, only count filled work hours
+  const projectPhaseHours = {};
+  blocks.forEach((b) => {
+    const isFilled =
+      b.projectName || b.projectPhase || b.projectTask || b.projectCategory;
+    const status = row.status || "Work";
 
-    // Flatten data so each project is one row, phases concatenated
-    return Object.entries(projectPhaseHours).map(([project, phases], projectIdx) => {
-      const phaseDetails = Object.entries(phases)
-        .map(([phase, hours]) => `${phase}: ${hours}`)
-        .join(", ");
+    if (!isFilled || status === "Leave") return; // Skip leave or empty blocks
 
-      // Only show date/check-in/check-out on the first project row for that date
-      const showDate = projectIdx === 0;
+    const project = b.projectName || "-";
+    const phase = b.projectPhase || "-";
 
-      return (
-        <tr key={`${idx}-${project}`}>
-          <td>{showDate ? formatDate(row.date) : ""}</td>
-          <td>{showDate ? row.checkIn : ""}</td>
-          <td>{showDate ? row.checkOut : ""}</td>
-          <td>{project}</td>
-          <td>{phaseDetails}</td>
-          <td>{Object.values(phases).reduce((a, b) => a + b, 0)}</td>
-        </tr>
-      );
-    });
-  })}
+    if (!projectPhaseHours[project]) projectPhaseHours[project] = {};
+    if (!projectPhaseHours[project][phase]) projectPhaseHours[project][phase] = 0;
+
+    projectPhaseHours[project][phase] += 1; // count 1 hour per block
+  });
+
+  // Flatten data so each project is one row, phases concatenated
+  return Object.entries(projectPhaseHours).map(([project, phases], projectIdx) => {
+    const phaseDetails = Object.entries(phases)
+      .map(([phase, hours]) => `${phase}: ${hours}`)
+      .join(", ");
+
+    // Only show date/check-in/check-out on the first project row for that date
+    const showDate = projectIdx === 0;
+
+    return (
+      <tr key={`${idx}-${project}`}>
+        <td>{showDate ? formatDate(row.date) : ""}</td>
+        <td>{showDate ? row.checkIn : ""}</td>
+        <td>{showDate ? row.checkOut : ""}</td>
+        <td>{project}</td>
+        <td>{phaseDetails}</td>
+        <td>{Object.values(phases).reduce((a, b) => a + b, 0)}</td>
+      </tr>
+    );
+  });
+})}
+
+  
 </tbody>
 
     </table>
