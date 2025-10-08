@@ -270,3 +270,22 @@
   background: rgba(0,0,0,0.5);
   z-index: 900;
 }
+/* Ensure the top‐level wrapper uses flex */
+.employee-detail-container-with-sidebar {
+  display: flex;         /* horizontal layout */
+  height: 100vh;         /* full viewport height */
+  overflow: hidden;      /* prevent unwanted scrollbars */
+}
+
+/* Prevent sidebar from shrinking, and fix its width */
+.employee-detail-container-with-sidebar .sidebar {
+  flex-shrink: 0;        /* do not shrink */
+  width: 270px;          /* match your sidebar.css */
+  height: 100vh;         /* full height */
+}
+
+/* Make the timesheet content fill the rest of the space */
+.employee-detail-container-with-sidebar .employee-detail-container {
+  flex: 1;               /* grow to take remaining width */
+  overflow: auto;        /* scroll if it overflows vertically */
+}

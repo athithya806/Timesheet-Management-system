@@ -7,8 +7,7 @@ import Project from "./components/Admin/projects/projects.jsx";
 import AddEmployee from "./components/Admin/add_employee/add_employee.jsx"; 
 import AddProject from "./components/Admin/add_project/add_project.jsx"; 
 import LoginPage from "./components/login_page/login.jsx"; 
-
-
+import Sidebar from "./components/sidebar/sidebar.jsx";
 import ForgotPassword from "./components/login_page/ForgotPassword";
 import ResetPassword from "./components/login_page/ResetPassword";
 
@@ -26,6 +25,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
 
         {/* Timesheet route */}
+    
         <Route path="/timesheet" element={<TimesheetDetail />} />
 
         {/* Projects route */}
@@ -36,7 +36,7 @@ function App() {
 
         {/* Add Project route */}
         <Route path="/add_project" element={<AddProject />} />
-
+        <Route path="/sidebar" element={<Sidebar />} />
         {/* Employee details route */}
         <Route path="/employee" element={<EmployeeDetail />} />
           <Route path="/authentication/forgot-password" element={<ForgotPassword />} />

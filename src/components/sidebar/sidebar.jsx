@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./Sidebar.css";
+import "./sidebar.css";
 import { FaUserCircle, FaClock, FaSignOutAlt } from "react-icons/fa";
 
 const Sidebar = () => {
@@ -55,18 +55,6 @@ const Sidebar = () => {
             <span className="hover-glow"></span>
           </li>
         </ul>
-
-        <div className="sidebar-footer">
-          <img
-            src="https://via.placeholder.com/40"
-            alt="profile"
-            className="profile-pic"
-          />
-          <div className="user-info">
-            <p className="name">Athithya</p>
-            <p className="email">athithya@tansam.org</p>
-          </div>
-        </div>
       </div>
     </div>
   );

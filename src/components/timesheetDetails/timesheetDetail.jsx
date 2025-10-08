@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import "./timesheetDetail.css";
+import Sidebar from "../sidebar/sidebar.jsx";
 
 const TimesheetDetail = () => {
   const { id } = useParams();
@@ -174,8 +175,6 @@ const getHourlySlots = () => {
 
   return slots;
 };
-
-
 // Generate dynamic timeline headers
 const generateTimelineHeaders = (startHour, endHour) => {
   let headers = [];
@@ -441,7 +440,7 @@ getHourlySlots().forEach(hour => {
   }, [id]);
 
   return (
-    
+    <div className="employee-detail-container-with-sidebar"> <Sidebar />
     <div className="employee-detail-container">
       {/* Header */}
       <div className="header">
@@ -836,7 +835,7 @@ getHourlySlots().forEach(hour => {
           </div>
         </>
       )}
-    </div>
+    </div></div>
   );
 };
 
