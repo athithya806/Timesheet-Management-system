@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import "./timesheetDetail.css";
-import Sidebar from "../sidebar/sidebar.jsx";
+
 
 const TimesheetDetail = () => {
   const { id } = useParams();
@@ -41,6 +41,13 @@ const maxHour = 19;
     if (mer === "AM" && h === 12) h = 24;
     return h;
   };
+const projectPhaseOptions = {
+  Software: ["Design", "Development", "Testing", "Release", "Bug Fix"],
+  "AR/VR": ["Design", "Development", "Testing", "Release", "Bug Fix"],
+  Engineering: ["Design", "Development", "Testing", "Release", "Bug Fix"],
+  Training: ["Design", "Development", "Deployment"], // As requested
+  General: ["Meeting"] // Custom - maps to "Design", "Development"
+};
 
   const updateHourDetail = (hour, key, value) => {
     setHourlyDetails((prev) => {
@@ -306,20 +313,30 @@ const openEditPanel = (date) => {
       Release: ["Configuration Management", "Deploy"],
       "Bug Fix": ["Error", "New Feature"],
     },
+    "AR/VR": {
+      Design: ["Storyboard", "3D Modeling", "Animation"],
+      Development: ["Unity Dev", "Augmented Reality", "Virtual Reality"],
+      Testing: ["Unit Testing", "System Testing"],
+      Release: ["Configuration Management", "Deploy", "error"],
+      "Bug Fix": ["Error", "New feature"],
+    }, 
     Engineering: {
-      Design: ["Blueprint", "Simulation"],
-      Development: ["Prototype", "Fabrication"],
-      Testing: ["Load Testing", "Field Testing"],
-      Release: ["Handover", "Maintenance"],
-      "Bug Fix": ["Repair", "Upgrade"],
+      Design: ["POC", "Data Collection", 'Simulation'],
+      Development: ["Mechnical", "Electrical", "firmware", "Robotics"],
+      Testing: ["Unit Testing", "System Testing"],
+      Release: ["Configuration Management", "Deploy"],
+      "Bug Fix": ["Error", "New Feature"],
     },
-    Training: {
+      Training : {
       Design: ["Curriculum Design"],
-      Development: ["Material Preparation"],
-      Testing: ["Mock Sessions"],
-      Release: ["Delivery"],
-      "Bug Fix": ["Content Update"],
+      Development: ["Content Creation", "Assessment"],
+      Deployment: ["Conduct training", "Evaluation"],
+      
     },
+  General: {
+    Meeting: ["Requirement Gathering", "Project Clarification", "Demo"],
+  },
+    
   };
   // Save timesheet handler
    const handleSaveTimesheet = async () => {
@@ -440,7 +457,7 @@ getHourlySlots().forEach(hour => {
   }, [id]);
 
   return (
-    <div className="employee-detail-container-with-sidebar"> <Sidebar />
+   
     <div className="employee-detail-container">
       {/* Header */}
       <div className="header">
@@ -745,8 +762,10 @@ getHourlySlots().forEach(hour => {
         >
           <option value="">Select Category</option>
           <option>Software</option>
+          <option>AR/VR</option>
           <option>Engineering</option>
           <option>Training</option>
+          <option>General</option>
         </select>
       </div>
 
@@ -766,21 +785,20 @@ getHourlySlots().forEach(hour => {
         </select>
       </div>
 
-      <div className="field">
-        <label>Project Phase</label>
-        <select
-          value={hourData.phase || ""}
-          onChange={(e) => updateHourDetail(hour, "phase", e.target.value)}
-          disabled={formMode === "Leave"}
-        >
-          <option value="">-- Select Phase --</option>
-          <option value="Design">Design</option>
-          <option value="Development">Development</option>
-          <option value="Testing">Testing</option>
-          <option value="Release">Release</option>
-          <option value="Bug Fix">Bug Fix</option>
-        </select>
-      </div>
+  <div className="field">
+  <label>Project Phase</label>
+  <select
+    value={hourData.phase || ""}
+    onChange={(e) => updateHourDetail(hour, "phase", e.target.value)}
+    disabled={formMode === "Leave"}
+  >
+    <option value="">-- Select Phase --</option>
+    {(projectPhaseOptions[hourData.category] || projectPhaseOptions['Software']).map((phase, idx) => (
+      <option key={idx} value={phase}>{phase}</option>
+    ))}
+  </select>
+</div>
+
 
       <div className="field">
         <label>Project Task</label>
@@ -835,7 +853,7 @@ getHourlySlots().forEach(hour => {
           </div>
         </>
       )}
-    </div></div>
+    </div>
   );
 };
 
