@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import "./sidebar.css";
 import { FaUserCircle, FaClock, FaSignOutAlt } from "react-icons/fa";
+import { useNavigate } from 'react-router-dom';
 
 const Sidebar = () => {
   const [activeItem, setActiveItem] = useState("Profile");
+const navigate = useNavigate();
 
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -47,13 +49,17 @@ const Sidebar = () => {
       <div className="bottom-section">
         <ul className="menu-list bottom-menu">
           <li
-            className={`menu-item logout ${activeItem === "Logout" ? "active" : ""}`}
-            onClick={() => setActiveItem("Logout")}
-            onMouseMove={handleMouseMove}
-          >
-            <FaSignOutAlt /> Logout
-            <span className="hover-glow"></span>
-          </li>
+  className={`menu-item logout ${activeItem === "Logout" ? "active" : ""}`}
+  onClick={() => {
+    setActiveItem("Logout");
+    navigate("/login");  // navigate to login page
+  }}
+  onMouseMove={handleMouseMove}
+>
+  <FaSignOutAlt /> Logout
+  <span className="hover-glow"></span>
+</li>
+
         </ul>
       </div>
     </div>
