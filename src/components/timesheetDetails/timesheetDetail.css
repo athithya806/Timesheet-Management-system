@@ -1,11 +1,65 @@
-/* Container */
+/* === Layout (Sidebar + Main Area) === */
+.timesheet-page {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #f8f9fc;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 270px; /* slightly wider for better alignment with your sidebar component */
+  flex-shrink: 0;
+  background-color: #1f2937;
+  color: #fff;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px 0; /* adjust padding if needed */
+}
+
+/* Main content */
+.timesheet-main {
+  flex: 1; /* take remaining space */
+  min-height: 100vh;
+  background-color: #f8f9fc;
+  overflow-y: auto; /* scroll only main content */
+  padding: 20px 40px;
+  box-sizing: border-box; /* ensure padding doesn't shrink content */
+}
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+  .timesheet-page {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+  }
+
+  .timesheet-main {
+    padding: 15px;
+  }
+}
+
+/* === Container === */
 .employee-detail-container {
   font-family: Arial, sans-serif;
   background: #f9f9f9;
   padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Header */
+/* === Header === */
 .header {
   display: flex;
   justify-content: space-between;
@@ -22,7 +76,7 @@
   color: #333;
 }
 
-/* Profile Section */
+/* === Profile Section === */
 .profile-section {
   display: flex;
   align-items: center;
@@ -57,7 +111,7 @@
   margin: 2px 0;
 }
 
-/* Progress Section */
+/* === Progress Section === */
 .progress-section {
   margin-bottom: 20px;
 }
@@ -88,11 +142,17 @@
 .legend {
   margin-right: 15px;
 }
-.legend.green { color: #4caf50; }
-.legend.red { color: #f44336; }
-.legend.orange { color: #f4b400; }
+.legend.green {
+  color: #4caf50;
+}
+.legend.red {
+  color: #f44336;
+}
+.legend.orange {
+  color: #f4b400;
+}
 
-/* Tabs */
+/* === Tabs === */
 .tabs {
   display: flex;
   gap: 20px;
@@ -110,38 +170,7 @@
   font-weight: bold;
 }
 
-/* Actions */
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.checkbox {
-  font-size: 14px;
-}
-.btn {
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-.btn.light {
-  background: #f3f3f3;
-  border: 1px solid #ccc;
-}
-.btn.reject {
-  background: #f8d7da;
-  color: #721c24;
-  border: none;
-}
-.btn.approve {
-  background: #4caf50;
-  color: #fff;
-  border: none;
-}
-
-/* Timeline Grid */
+/* === Timeline Grid === */
 .timeline-view {
   background: #fff;
   border: 1px solid #ddd;
@@ -174,8 +203,12 @@
   border-right: 1px solid #ddd;
   height: 30px;
 }
-.hour-cell.work { background: #4caf50; }
-.hour-cell.break { background: #f4b400; }
+.hour-cell.work {
+  background: #4caf50;
+}
+.hour-cell.break {
+  background: #f4b400;
+}
 .approval-cell {
   display: flex;
   justify-content: center;
@@ -185,21 +218,24 @@
   border-left: 1px solid #ddd;
 }
 
-/* Icon Buttons */
+/* === Icon Buttons === */
 .icon-btn {
   border: none;
   background: none;
   font-size: 18px;
   cursor: pointer;
 }
-.edit-btn { color: #555; }
+.edit-btn {
+  color: #555;
+}
 
-/* Edit Panel */
-.edit-panel, .approval-drawer {
+/* === Edit & Approval Panels === */
+.edit-panel,
+.approval-drawer {
   display: flex;
   flex-direction: column;
   background: #fff;
-  box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
   animation: slideIn 0.3s ease-in-out;
   z-index: 1000;
 }
@@ -210,19 +246,38 @@
   width: 360px;
   height: 100%;
 }
-.approval-drawer { width: 400px; position: fixed; right:0; top:0; height:100%; }
-@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-
-.edit-header, .drawer-header {
+.approval-drawer {
+  width: 400px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+}
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.edit-header,
+.drawer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 15px;
   border-bottom: 1px solid #ddd;
 }
-.close-btn { background:none; border:none; font-size:18px; cursor:pointer; }
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+}
 
-.edit-content, .drawer-content {
+.edit-content,
+.drawer-content {
   padding: 15px;
   flex: 1;
   overflow-y: auto;
@@ -235,13 +290,29 @@
   border-radius: 5px;
   background: #f9f9f9;
 }
-.hour-block h4 { margin-bottom: 10px; font-size: 14px; }
+.hour-block h4 {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
 
-.field { margin-bottom: 12px; }
-.field label { display:block; font-size: 13px; margin-bottom:5px; }
-.field input, .field select { width: 100%; padding: 6px; border:1px solid #ccc; border-radius:4px; }
+.field {
+  margin-bottom: 12px;
+}
+.field label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+.field input,
+.field select {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
 
-.edit-footer, .drawer-footer {
+.edit-footer,
+.drawer-footer {
   padding: 15px;
   border-top: 1px solid #ddd;
   display: flex;
@@ -252,7 +323,7 @@
   padding: 6px 12px;
   border: 1px solid #ccc;
   background: #f3f3f3;
-  cursor:pointer;
+  cursor: pointer;
 }
 .save-btn {
   padding: 6px 12px;
@@ -262,11 +333,38 @@
   cursor: pointer;
 }
 
-/* Overlay */
+/* === Overlay === */
 .overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: rgba(0,0,0,0.5);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 900;
+}
+
+/* Wrapper that scrolls table/timeline content */
+.timesheet-content-scroll {
+  flex: 1;              /* take remaining vertical space */
+  overflow-y: auto;     /* vertical scroll if content exceeds */
+
+  padding-right: 10px;  /* optional padding to prevent scrollbar overlap */
+}
+
+/* Horizontal scroll wrapper for table */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Prevent table text wrapping */
+.summary-table th,
+.summary-table td {
+  white-space: nowrap;
+}
+
+/* Timeline rows scroll wrapper */
+.timeline-rows-wrapper {
+  overflow-x: auto; /* scroll horizontally if timeline exceeds container width */
 }
