@@ -51,7 +51,7 @@ const EmployeeDetail = () => {
  
 
       <div className="main">
-        <h1 className="title">Time & Attendance</h1>
+        {/* <h1 className="title">Time & Attendance</h1> */}
 
         {/* ===== Top Stats ===== */}
         <div className="stats-bar">
@@ -101,9 +101,9 @@ const EmployeeDetail = () => {
           <button className="tab" onClick={() => navigate("/projects")}>
             Projects
           </button>
-          <button className="tab" onClick={() => handleTabClick("dashboard")}>
+          {/* <button className="tab" onClick={() => handleTabClick("dashboard")}>
             Dashboard
-          </button>
+          </button> */}
         </div>
 
         {/* Search */}

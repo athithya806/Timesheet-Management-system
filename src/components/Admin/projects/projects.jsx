@@ -55,6 +55,31 @@ const Project = () => {
         m.department === dept
     );
   };
+  
+  const getTasksForEmployeePhase = (empId, projectName, phase) => {
+  let tasks = [];
+  const empTimecards = timecards.filter((t) => t.memberId === empId);
+  
+  empTimecards.forEach((tc) => {
+    try {
+      const blocks = JSON.parse(tc.hourBlocks || "[]");
+      blocks.forEach((b) => {
+        const projectMatch = b.projectName?.trim().toLowerCase() === projectName.trim().toLowerCase();
+        const phaseMatch = b.projectPhase?.trim().toLowerCase() === phase.trim().toLowerCase();
+        if (projectMatch && phaseMatch && b.projectTask) {
+          tasks.push(b.projectTask);
+        }
+      });
+    } catch (e) {
+      console.error("Invalid JSON in hourBlocks:", tc.hourBlocks);
+    }
+  });
+
+  return tasks.length ? tasks.join(" - ") : "No tasks";
+};
+
+
+
 
   const getHoursForEmployee = (empId, projectName) => {
     let total = 0;
@@ -298,12 +323,17 @@ const Project = () => {
                         <td className="employee-name" >
                           {emp.fullName || "Unnamed Employee"}
                         </td>
-                        <td>
+                        {/* <td>
                           <span
                             className={`role-badge ${emp.role?.replace(/\s+/g, "-").toLowerCase() || "employee"}`}
                           >
                             {emp.role || "Employee"}
                           </span>
+                        </td> */}
+                        <td>
+                          {selectedPhase
+                            ? getTasksForEmployeePhase(emp.id, proj.projectName, selectedPhase) || "No tasks"
+                            : "-"}
                         </td>
                         <td>
                           <span
