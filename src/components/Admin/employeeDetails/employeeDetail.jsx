@@ -1,20 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
 import "./employeeDetail.css";
-
-const DEPARTMENTS = [
-  "Innovative Manufacturing",
-  "Smart Factory Center",
-  "AR | VR | MR Research Centre",
-  "Digital Technology",
-  "Research Centre For PLM",
-  "Research Centre For Asset Performance",
-  "Product Innovation Center",
-  "Predictive Engineering",
-];
-
-const ROLES = ["admin", "employee"];
 
 const EmployeeDetail = () => {
   const navigate = useNavigate();
@@ -23,17 +11,13 @@ const EmployeeDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("table"); // table or card
 
   const handleTabClick = (tab) => {
     if (tab === "addEmployee") return navigate("/add_employee");
     if (tab === "addProject") return navigate("/add_project");
     if (tab === "dashboard") return navigate("/dashboard");
     setActiveTab(tab);
-  };
-
-  const handleRowClick = (emp) => {
-    // Navigate to employee details with emp data
-    navigate(`/employee/${emp.id}`, { state: { employeeData: emp } });
   };
 
   const fetchEmployees = () => {
@@ -58,22 +42,41 @@ const EmployeeDetail = () => {
     fetchEmployees();
   }, []);
 
-  useEffect(() => {
-    const handleFocus = () => {
-      if (activeTab === "employeeList") fetchEmployees();
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [activeTab]);
-
   const filteredEmployees = employees.filter((emp) =>
     emp.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="container">
+ 
+
       <div className="main">
-        <h1 className="title">Time & Attendance</h1>
+        {/* <h1 className="title">Time & Attendance</h1> */}
+
+        {/* ===== Top Stats ===== */}
+        <div className="stats-bar">
+          <div className="stat-box">
+            <div className="icon total"></div>
+            <div>
+              <h3>{employees.length}</h3>
+              <p>Total Employees</p>
+            </div>
+          </div>
+          <div className="stat-box">
+            <div className="icon admin"></div>
+            <div>
+              <h3>{employees.filter(e => e.role?.toLowerCase() === 'admin').length}</h3>
+              <p>Admins</p>
+            </div>
+          </div>
+          <div className="stat-box">
+            <div className="icon employee"></div>
+            <div>
+              <h3>{employees.filter(e => e.role?.toLowerCase() !== 'admin').length}</h3>
+              <p>Employees</p>
+            </div>
+          </div>
+        </div>
 
         {/* Tabs */}
         <div className="tabs">
@@ -98,101 +101,154 @@ const EmployeeDetail = () => {
           <button className="tab" onClick={() => navigate("/projects")}>
             Projects
           </button>
-          <button className="tab" onClick={() => handleTabClick("dashboard")}>
+          {/* <button className="tab" onClick={() => handleTabClick("dashboard")}>
             Dashboard
-          </button>
+          </button> */}
         </div>
 
-        {/* Search Bar */}
+        {/* Search */}
         <div className="search-bar">
           <div className="search">
             <Search className="search-icon" size={18} />
             <input
               type="text"
-              placeholder="Search employee"
+              placeholder="Search employee..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Employee Table */}
+        {/* Employee List */}
         {activeTab === "employeeList" && (
           <>
             {loading && <p>Loading employees...</p>}
             {error && <p className="error">{error}</p>}
+
             {!loading && !error && (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Profile</th>
-                    <th>EmpID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Department</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEmployees.map((emp) => (
-                    <tr key={emp.id}>
-                      <td>
-                        {emp.imagePath ? (
-                          <img
-                            src={
-                              emp.imagePath.startsWith("/uploads")
-                                ? `http://localhost:3001${emp.imagePath}`
-                                : `http://localhost:3001/uploads/${emp.imagePath}`
-                            }
-                            alt={emp.fullName}
-                            className="profile-img"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src =
-                                "https://ui-avatars.com/api/?name=" + emp.fullName;
-                            }}
-                          />
-                        ) : (
-                          <div className="profile-placeholder">
-                            {emp.fullName?.charAt(0)}
-                          </div>
-                        )}
-                      </td>
-                      <td>{emp.empId}</td>
-                      <td>{emp.fullName}</td>
-                      <td>{emp.email}</td>
-                      <td>{emp.department}</td>
-                      <td>
-                        <button
-                          className="btn small"
-                          onClick={() => navigate("/add_employee", { state: { employeeData: emp } })}
-                        >
-                          ✏️
-                        </button>
-
-                        <button
-                          className="btn small"
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete ${emp.fullName}?`)) {
-                              fetch(`http://localhost:3001/api/members/${emp.id}`, { method: "DELETE" })
-                                .then((res) => res.json())
-                                .then((data) => {
-                                  if (data.success)
-                                    setEmployees(employees.filter((e) => e.id !== emp.id));
-                                })
-                                .catch((err) => console.error("Delete error:", err));
-                            }
-                          }}
-                        >
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-
-               
-              </table>
+              <>
+                {viewMode === "table" ? (
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Profile</th>
+                        <th>EmpID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Department</th>
+                        <th>Role</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEmployees.map((emp) => (
+                        <tr key={emp.id}>
+                          <td>
+                            {emp.imagePath ? (
+                              <img
+                                src={
+                                  emp.imagePath.startsWith("/uploads")
+                                    ? `http://localhost:3001${emp.imagePath}`
+                                    : `http://localhost:3001/uploads/${emp.imagePath}`
+                                }
+                                alt={emp.fullName}
+                                className="profile-img"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src =
+                                    "https://ui-avatars.com/api/?name=" +
+                                    emp.fullName;
+                                }}
+                              />
+                            ) : (
+                              <div className="profile-placeholder">
+                                {emp.fullName?.charAt(0)}
+                              </div>
+                            )}
+                          </td>
+                          <td>{emp.empId}</td>
+                          <td
+                            className="employee-name">
+                            {emp.fullName}
+                          </td>
+                          <td>{emp.email}</td>
+                          <td>{emp.department}</td>
+                          <td>
+                            <span
+                              className={`role-badge ${
+                                emp.role?.toLowerCase() === "admin" ? "admin" : "employee"
+                              }`}
+                            >
+                              {emp.role || "Employee"}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className="btn small edit"
+                              onClick={() =>
+                                navigate("/add_employee", { state: { employeeData: emp } })
+                              }
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="btn small delete"
+                              onClick={() => {
+                                if (window.confirm(`Delete ${emp.fullName}?`)) {
+                                  fetch(`http://localhost:3001/api/members/${emp.id}`, { method: "DELETE" })
+                                    .then((res) => res.json())
+                                    .then(() =>
+                                      setEmployees(employees.filter((e) => e.id !== emp.id))
+                                    );
+                                }
+                              }}
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="card-view">
+                    {filteredEmployees.map((emp) => (
+                      <div key={emp.id} className="employee-card">
+                        <div className="profile-container">
+                          {emp.imagePath ? (
+                            <img
+                              src={
+                                emp.imagePath.startsWith("/uploads")
+                                  ? `http://localhost:3001${emp.imagePath}`
+                                  : `http://localhost:3001/uploads/${emp.imagePath}`
+                              }
+                              alt={emp.fullName}
+                              className="profile-img"
+                            />
+                          ) : (
+                            <div className="profile-placeholder">
+                              {emp.fullName?.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <h3 className="employee-name">{emp.fullName}</h3>
+                        <p>EmpID: {emp.empId}</p>
+                        <p>Email: {emp.email}</p>
+                        <p>Dept: {emp.department}</p>
+                        <div>
+                          <span
+                            className={`role-badge ${
+                              emp.role?.toLowerCase() === "admin" ? "admin" : "employee"
+                            }`}
+                          >
+                            {emp.role || "Employee"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

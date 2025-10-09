@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import "./timesheetDetail.css";
-
+import Sidebar from "../sidebar/sidebar";
 
 const TimesheetDetail = () => {
   const { id } = useParams();
@@ -457,12 +457,13 @@ getHourlySlots().forEach(hour => {
   }, [id]);
 
   return (
-   
+      <div className="timesheet-page">
+       <Sidebar />
+    
     <div className="employee-detail-container">
       {/* Header */}
       <div className="header">
         {/* <Link to="/" className="back-link">← Back</Link> */}
-        <h1>Time & Attendance</h1>
       </div>
 
      {/* Profile Section */}
@@ -556,143 +557,162 @@ getHourlySlots().forEach(hour => {
         <button className="btn reject">Reject All</button>
         <button className="btn approve">Approve All</button>
       </div> */}
+      
+<div
+  className="timesheet-content-scroll"
+  style={{
+    maxHeight: `${16 * 40}px`, // 16 rows × 40px per row (adjust row height as needed)
+    overflowY: timecardData.length > 16 ? "auto" : "visible",
+  }}
+>
+  {activeTab === "timecard" ? (
+    <div className="timecard-view">
+      {timecardData && timecardData.length > 0 && (
+        <div className="project-phase-summary" style={{ marginTop: "2rem" }}>
+          <h4>Project / Phase Total Hours (Date-wise)</h4>
+          <div className="table-wrapper">
+            <table className="table summary-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Project</th>
+                  <th>Phase</th>
+                  <th>Total Hours</th>
+                </tr>
+              </thead>
+              <tbody>
+                {timecardData.map((row, idx) => {
+                  const blocks = JSON.parse(row.hourBlocks || "[]");
 
-      {/* Timecard View */}
-      {activeTab === "timecard" ? (
-        <div className="timecard-view">
-          {/* ---- Project/Phase Total Summary (Date-wise) ---- */}
-{timecardData && timecardData.length > 0 && (
-  <div className="project-phase-summary" style={{ marginTop: "2rem" }}>
-    <h4>Project / Phase Total Hours (Date-wise)</h4>
-    <table className="table summary-table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Check-in</th>
-          <th>Check-out</th>
-          <th>Project</th>
-          <th>Phase</th>
-          <th>Total Hours</th>
-        </tr>
-      </thead>
-      <tbody>
-  {timecardData.map((row, idx) => {
-    const blocks = JSON.parse(row.hourBlocks || "[]");
+                  const projectPhaseHours = {};
+                  blocks.forEach((b) => {
+                    const isFilled =
+                      b.projectName || b.projectPhase || b.projectTask || b.projectCategory;
+                    const status = row.status || "Work";
+                    if (!isFilled || status === "Leave") return;
 
-    // Compute total hours per project and phase
-    const projectPhaseHours = {};
-    blocks.forEach((b) => {
-      const project = b.projectName || "-";
-      const phase = b.projectPhase || "-";
-      if (!projectPhaseHours[project]) projectPhaseHours[project] = {};
-      if (!projectPhaseHours[project][phase]) projectPhaseHours[project][phase] = 0;
-      projectPhaseHours[project][phase] += 1; // 1 hour per block
-    });
+                    const project = b.projectName || "-";
+                    const phase = b.projectPhase || "-";
 
-    // Flatten data so each project is one row, phases concatenated
-    return Object.entries(projectPhaseHours).map(([project, phases], projectIdx) => {
-      const phaseDetails = Object.entries(phases)
-        .map(([phase, hours]) => `${phase}: ${hours}`)
-        .join(", ");
+                    if (!projectPhaseHours[project]) projectPhaseHours[project] = {};
+                    if (!projectPhaseHours[project][phase]) projectPhaseHours[project][phase] = 0;
 
-      // Only show date/check-in/check-out on the first project row for that date
-      const showDate = projectIdx === 0;
+                    projectPhaseHours[project][phase] += 1;
+                  });
 
-      return (
-        <tr key={`${idx}-${project}`}>
-          <td>{showDate ? formatDate(row.date) : ""}</td>
-          <td>{showDate ? row.checkIn : ""}</td>
-          <td>{showDate ? row.checkOut : ""}</td>
-          <td>{project}</td>
-          <td>{phaseDetails}</td>
-          <td>{Object.values(phases).reduce((a, b) => a + b, 0)}</td>
-        </tr>
-      );
-    });
-  })}
-</tbody>
+                  return Object.entries(projectPhaseHours).map(([project, phases], projectIdx) => {
+                    const phaseDetails = Object.entries(phases)
+                      .map(([phase, hours]) => `${phase}: ${hours}`)
+                      .join(", ");
+                    const showDate = projectIdx === 0;
 
-    </table>
-  </div>
-)}
-
-        </div>
-      ) : activeTab === "timeline" ? (
-        <div className="timeline-view">
-       <div className="timeline-header">
-  <div className="date-cell">Date</div>
-  {timelineHeaders.map((h, i) => (
-    <th key={i}>{h}</th>
-  ))}
-  <div className="approval-cell">Edit</div>
-</div>
-
-          {daysInMonth.map((date, index) => {
-            const formatted = formatDate(date);
-            const entry = timecardData.find((d) => formatDate(d.date) === formatted);
-            const hourBlocks = entry ? JSON.parse(entry.hourBlocks || "[]") : [];
-
-            return (
-              <div className="timeline-row" key={index}>
-                <div className="date-cell">{formatted}</div>
-
-                {[...Array(9)].map((_, hourIdx) => {
-                  const hour = 9 + hourIdx;
-                  const block = hourBlocks.find(
-                    (b) =>
-                      b.hour === formatHourRange(hour) ||
-                      (b.hourKey && b.hourKey === hour) ||
-                      (typeof b.hour === "string" && parseHourKeyFromRange(b.hour) === hour)
-                  );
-
-                  const status = entry?.status || "Work";
-                  const isLeave = status === "Leave";
-                  const isFilled =
-                    block &&
-                    (block.projectType ||
-                      block.projectCategory ||
-                      block.projectName ||
-                      block.projectPhase ||
-                      block.projectTask);
-
-                  let colorClass = "";
-                  if (hour === 13) colorClass = "break";
-                  else if (isLeave) colorClass = "leave";
-                  else if (isFilled) colorClass = "work";
-
-                  return (
-                    <div
-                      key={hourIdx}
-                      className={`hour-cell ${colorClass}`}
-                      title={
-                        isLeave
-                          ? "Leave"
-                          : hour === 13
-                          ? "Lunch Break"
-                          : isFilled
-                          ? `${block.projectName || "-"} (${block.projectPhase || "-"})`
-                          : ""
-                      }
-                    />
-                  );
+                    return (
+                      <tr key={`${idx}-${project}`}>
+                        <td>{showDate ? formatDate(row.date) : ""}</td>
+                        <td>{showDate ? row.checkIn : ""}</td>
+                        <td>{showDate ? row.checkOut : ""}</td>
+                        <td>{project}</td>
+                        <td>{phaseDetails}</td>
+                        <td>{Object.values(phases).reduce((a, b) => a + b, 0)}</td>
+                      </tr>
+                    );
+                  });
                 })}
-
-                <div className="approval-cell">
-                  <button className="icon-btn edit-btn" onClick={() => openEditPanel(formatted)}>
-                    ✎
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-
-          <div className="legend-container">
-            <span className="legend-box work" /> Work
-            <span className="legend-box leave" /> Leave
-            <span className="legend-box break" /> Lunch Break
+              </tbody>
+            </table>
           </div>
         </div>
-      ) : null}
+      )}
+    </div>
+  ) : activeTab === "timeline" ? (
+    <div className="timeline-view">
+      <div className="timeline-header">
+        <div className="date-cell">Date</div>
+        {timelineHeaders.map((h, i) => (
+          <th key={i}>{h}</th>
+        ))}
+        <div className="approval-cell">Edit</div>
+      </div>
+
+      <div
+        className="timeline-rows-wrapper"
+        style={{
+          maxHeight: `${16 * 40}px`,
+          overflowY: daysInMonth.length > 16 ? "auto" : "visible",
+        }}
+      >
+        {daysInMonth.map((date, index) => {
+          const formatted = formatDate(date);
+          const entry = timecardData.find((d) => formatDate(d.date) === formatted);
+          const hourBlocks = entry ? JSON.parse(entry.hourBlocks || "[]") : [];
+
+          return (
+            <div className="timeline-row" key={index}>
+              <div className="date-cell">{formatted}</div>
+
+              {[...Array(9)].map((_, hourIdx) => {
+                const hour = 9 + hourIdx;
+                const block = hourBlocks.find(
+                  (b) =>
+                    b.hour === formatHourRange(hour) ||
+                    (b.hourKey && b.hourKey === hour) ||
+                    (typeof b.hour === "string" && parseHourKeyFromRange(b.hour) === hour)
+                );
+
+                const status = entry?.status || "Work";
+                const isLeave = status === "Leave";
+                const isFilled =
+                  block &&
+                  (block.projectType ||
+                    block.projectCategory ||
+                    block.projectName ||
+                    block.projectPhase ||
+                    block.projectTask);
+
+                let colorClass = "";
+                if (hour === 13) colorClass = "break";
+                else if (isLeave) colorClass = "leave";
+                else if (isFilled) colorClass = "work";
+
+                return (
+                  <div
+                    key={hourIdx}
+                    className={`hour-cell ${colorClass}`}
+                    title={
+                      isLeave
+                        ? "Leave"
+                        : hour === 13
+                        ? "Lunch Break"
+                        : isFilled
+                        ? `${block.projectName || "-"} (${block.projectPhase || "-"})`
+                        : ""
+                    }
+                  />
+                );
+              })}
+
+              <div className="approval-cell">
+                <button className="icon-btn edit-btn" onClick={() => openEditPanel(formatted)}>
+                  ✎
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="legend-container">
+        <span className="legend-box work" /> Work
+        <span className="legend-box leave" /> Leave
+        <span className="legend-box break" /> Lunch Break
+      </div>
+    </div>
+  ) : null}
+</div>
+
+
 
       {/* Manual Time Edit Panel - Hourly Project Fields */}
 {showEditPanel && (
@@ -853,6 +873,7 @@ getHourlySlots().forEach(hour => {
           </div>
         </>
       )}
+    </div>
     </div>
   );
 };

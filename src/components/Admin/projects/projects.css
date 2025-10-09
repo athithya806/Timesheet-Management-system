@@ -1,63 +1,202 @@
 .project-container {
   padding: 20px;
-  font-family: Arial, sans-serif;
+  font-family: 'Arial', sans-serif;
+  background-color: #f9fafb;
 }
 
+/* --- Table Styles --- */
 .project-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #ffffff;
 }
 
 .project-table th,
 .project-table td {
-  border: 1px solid #e0e0e0;
-  padding: 12px;
+  padding: 14px 16px;
   text-align: left;
 }
 
 .project-table th {
-  background-color: #f5f5f5;
+  background: linear-gradient(90deg, #2563eb, #0ea5e9);
+  color: #ffffff;
   font-weight: 600;
+  font-size: 14px;
+}
+
+.project-table tr:nth-child(even) {
+  background-color: #f3f4f6;
+}
+
+.project-table tr:hover {
+  background-color: #e0f2fe;
+  transition: 0.3s;
 }
 
 .employee-name {
   cursor: pointer;
-  color: #2563eb;
+  color: #1d4ed8;
+  font-weight: 500;
   text-decoration: underline;
+  transition: 0.2s;
 }
+.employee-name:hover { color: #0ea5e9; }
 
 .role-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
   font-size: 12px;
+  font-weight: 500;
+  color: white;
+  background: linear-gradient(135deg, #10b981, #047857);
 }
-
-.front-end-engineer { background-color: #84cc16; }
-.back-end-engineer { background-color: #16a34a; }
-.fullstack-engineer { background-color: #0ea5e9; }
+.front-end-engineer { background: linear-gradient(135deg, #84cc16, #65a30d); }
+.back-end-engineer { background: linear-gradient(135deg, #16a34a, #065f46); }
+.fullstack-engineer { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
 
 .status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
+  padding: 5px 10px;
+  border-radius: 20px;
   font-size: 12px;
-  color: white;
+  font-weight: 500;
+  color: black;
+  text-transform: capitalize;
 }
-
-.under-capacity { background-color: #facc15; }
-.at-capacity { background-color: #4ade80; }
-.over-capacity { background-color: #f87171; }
-
-tr:hover {
-  background-color: #f9fafb;
-}
+.under-capacity { background: linear-gradient(135deg, #facc15, #ca8a04); }
+.at-capacity { background: linear-gradient(135deg, #4ade80, #16a34a); }
+.over-capacity { background: linear-gradient(135deg, #f87171, #b91c1c); }
 
 .phase-badge {
   padding: 4px 8px;
   border-radius: 12px;
   font-size: 12px;
   color: black;
-  /* background-color: #8b5cf6; purple badge */
+  background-color: #e0e7ff;
   display: inline-block;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.phase-badge:hover { background-color: #c7d2fe; }
+
+/* --- Stats Bar --- */
+.stats-bar { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+.stat-box {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #ffffff, #e0f7fa);
+  border-radius: 12px;
+  padding: 12px 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  gap: 12px;
+}
+.stat-box .icon { width: 35px; height: 35px; border-radius: 50%; }
+.stat-box .icon.total { background: linear-gradient(135deg, #0ea5e9, #2563eb); }
+.stat-box .icon.completed { background: linear-gradient(135deg, #4ade80, #16a34a); }
+.stat-box .icon.progress { background: linear-gradient(135deg, #facc15, #f59e0b); }
+.stat-box .icon.pending { background: linear-gradient(135deg, #f97316, #ea580c); }
+.stat-box .icon.overdue { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+
+/* --- Filter + Toggle --- */
+.filter-toggle-bar { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-toggle-bar input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+}
+.toggle-buttons button {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  background-color: #e5e7eb;
+  transition: 0.2s;
+}
+.toggle-buttons button.active { background-color: #2563eb; color: white; }
+
+/* --- Card View --- */
+.project-card {
+  background: linear-gradient(135deg, #ffffff, #f3f4f6); /* light card background like table rows */
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+.project-card:hover { 
+  box-shadow: 0 6px 12px rgba(0,0,0,0.12); 
+  background: linear-gradient(135deg, #e0f2fe, #f3f4f6);
+}
+
+.project-card h3 { 
+  margin-bottom: 8px; 
+  color: #2563eb; /* same as table header gradient color */
+}
+.project-card p { 
+  margin: 4px 0; 
+  font-size: 14px;
+}
+
+.project-card .phase-badge {
+  background-color: #e0e7ff; /* same as table phase badge */
+  color: black;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 6px;
+  margin-bottom: 4px;
+  transition: 0.2s;
+}
+.project-card .phase-badge:hover { 
+  background-color: #c7d2fe; 
+}
+
+.project-card .status-badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: black;
+  text-transform: capitalize;
+  display: inline-block;
+}
+.under-capacity { background-color: #facc15; }
+.at-capacity { background-color: #4ade80; }
+.over-capacity { background-color: #f87171; }
+
+.role-badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+}
+.front-end-engineer { background-color: #84cc16; }
+.back-end-engineer { background-color: #16a34a; }
+.fullstack-engineer { background-color: #0ea5e9; }
+
+/* Employee names clickable */
+.project-card .employee-name {
+  cursor: pointer;
+  color: #2563eb;
+  text-decoration: underline;
+  margin-right: 10px;
+  margin-bottom: 4px;
+  display: inline-block;
+  transition: 0.2s;
+}
+.project-card .employee-name:hover {
+  color: #0ea5e9;
+}
+.hour-cell.leave {
+  background-color: #ff6b6b; /* Red for leave */
 }

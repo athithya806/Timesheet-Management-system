@@ -20,34 +20,34 @@ const Sidebar = () => {
 
       <div className="sidebar-header">
         <h2 className="logo">TANSAM</h2>
-        <div className="menu-icon">&#9776;</div>
       </div>
+
+      {/* top menu */}
+      <ul className="menu-list top-menu">
+        <li
+          className={`menu-item ${activeItem === "Profile" ? "active" : ""}`}
+          onClick={() => setActiveItem("Profile")}
+          onMouseMove={handleMouseMove}
+        >
+          <FaUserCircle /> Profile
+          <span className="hover-glow"></span>
+        </li>
+
+        <li
+          className={`menu-item ${activeItem === "Timesheet" ? "active" : ""}`}
+          onClick={() => setActiveItem("Timesheet")}
+          onMouseMove={handleMouseMove}
+        >
+          <FaClock /> Timesheet
+          <span className="hover-glow"></span>
+        </li>
+      </ul>
 
       {/* only bottom menu */}
       <div className="bottom-section">
-        <ul className="menu-list">
+        <ul className="menu-list bottom-menu">
           <li
-            className={`menu-item ${activeItem === "Profile" ? "active" : ""}`}
-            onClick={() => setActiveItem("Profile")}
-            onMouseMove={handleMouseMove}
-          >
-            <FaUserCircle /> Profile
-            <span className="hover-glow"></span>
-          </li>
-
-          <li
-            className={`menu-item ${activeItem === "Timesheet" ? "active" : ""}`}
-            onClick={() => setActiveItem("Timesheet")}
-            onMouseMove={handleMouseMove}
-          >
-            <FaClock /> Timesheet
-            <span className="hover-glow"></span>
-          </li>
-
-          <li
-            className={`menu-item logout ${
-              activeItem === "Logout" ? "active" : ""
-            }`}
+            className={`menu-item logout ${activeItem === "Logout" ? "active" : ""}`}
             onClick={() => setActiveItem("Logout")}
             onMouseMove={handleMouseMove}
           >
