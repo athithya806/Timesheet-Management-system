@@ -64,7 +64,7 @@
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
-  color: white;
+  color: black;
   text-transform: capitalize;
 }
 .under-capacity { background: linear-gradient(135deg, #facc15, #ca8a04); }
@@ -165,7 +165,7 @@
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
-  color: white;
+  color: black;
   text-transform: capitalize;
   display: inline-block;
 }

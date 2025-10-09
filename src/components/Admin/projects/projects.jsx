@@ -117,34 +117,38 @@ const Project = () => {
             <p>Total Projects</p>
           </div>
         </div>
+
         <div className="stat-box">
           <div className="icon completed"></div>
           <div>
-            <h3>{countStatus("Completed")}</h3>
+            <h3>{countStatus("completed")}</h3>
             <p>Completed</p>
           </div>
         </div>
+
         <div className="stat-box">
           <div className="icon progress"></div>
           <div>
-            <h3>{countStatus("In Progress")}</h3>
+            <h3>{countStatus("ongoing")}</h3>
             <p>In Progress</p>
           </div>
         </div>
+
         <div className="stat-box">
           <div className="icon pending"></div>
           <div>
-            <h3>{countStatus("Pending")}</h3>
+            <h3>{countStatus("yet to start")}</h3>
             <p>Pending</p>
           </div>
         </div>
-        <div className="stat-box">
-          <div className="icon overdue"></div>
-          <div>
-            <h3>{countStatus("Overdue")}</h3>
-            <p>Overdue</p>
-          </div>
-        </div>
+
+        {/* v className="icon overdue"></div> <div className="stat-box">
+    <di */}
+        {/* <div>
+      <h3>{countStatus("overdue")}</h3>
+      <p>Overdue</p>
+    </div>
+  </div> */}
       </div>
 
       {/* Search + Toggle */}
@@ -291,7 +295,7 @@ const Project = () => {
                             </td>
                           </>
                         )}
-                        <td className="employee-name" onClick={() => handleEmployeeClick(emp.id)}>
+                        <td className="employee-name" >
                           {emp.fullName || "Unnamed Employee"}
                         </td>
                         <td>
@@ -368,11 +372,8 @@ const Project = () => {
                 {getEmployeesForDept(proj, proj.departments[0]).map((emp) => (
                   <div
                     key={emp.id}
-                    className="employee-name"
-                    onClick={() => handleEmployeeClick(emp.id)}
-                  >
-                    {emp.fullName}{" "}
-
+                    className="employee-name" >
+                    {emp.fullName}
                   </div>
                 ))}
               </div>

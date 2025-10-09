@@ -168,13 +168,7 @@ const EmployeeDetail = () => {
                           </td>
                           <td>{emp.empId}</td>
                           <td
-                            className="employee-name"
-                            onClick={() =>
-                              navigate(`/employee/${emp.id}`, {
-                                state: { employeeData: emp },
-                              })
-                            }
-                          >
+                            className="employee-name">
                             {emp.fullName}
                           </td>
                           <td>{emp.email}</td>

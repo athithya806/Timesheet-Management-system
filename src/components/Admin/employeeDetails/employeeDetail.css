@@ -193,13 +193,20 @@
 .admin { background: linear-gradient(135deg, #2563eb, #3b82f6); }
 .employee { background: linear-gradient(135deg, #0ea5e9, #22d3ee); }
 
-.employee-name {
+/* .employee-name {
   cursor: pointer;
   color: #2563eb;
   text-decoration: underline;
   transition: 0.2s;
+} */
+/* .employee-name:hover { color: #0ea5e9; } */
+
+.employee-name {
+  color: black !important;
+  text-decoration: none !important;
+  cursor: default;
 }
-.employee-name:hover { color: #0ea5e9; }
+
 
 .table tbody tr:hover { background-color: #e0f2fe; }
 
