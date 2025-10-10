@@ -24,6 +24,7 @@ const TimesheetDetail = () => {
   const [formMode, setFormMode] = useState("");
 
   const [timecardData, setTimecardData] = useState([]);
+  const leaveDays = getLeaveDayCount(timecardData);
   // For editing hourly project fields, example initialized as empty object
   const [editProjectsByHour, setEditProjectsByHour] = useState({});
 const minHour = 9;   // e.g. earliest checkIn
@@ -95,7 +96,36 @@ const projectPhaseOptions = {
 //     if (!projectPhaseTotals[project][phase]) projectPhaseTotals[project][phase] = 0;
 //     projectPhaseTotals[project][phase] += 1;
 //   });
-// });
+
+function getLeaveDayCount(timecardData) {
+  const dates = new Set();
+  timecardData.forEach(entry => {
+    if (entry.status === "Leave") dates.add(entry.date);
+  });
+  return dates.size;
+}
+
+function getHourSummaries(timecardData) {
+  let totalHours = 0;
+  let workingHours = 0;
+
+  timecardData.forEach(entry => {
+    let hourBlocks = [];
+    try {
+      hourBlocks = JSON.parse(entry.hourBlocks || "[]");
+    } catch {
+      hourBlocks = [];
+    }
+    const hours = hourBlocks.length;
+    totalHours += hours;
+    if (entry.status !== "Leave") {
+      workingHours += hours;
+    }
+  });
+
+  return { totalHours, workingHours };
+}
+const { totalHours, workingHours } = getHourSummaries(timecardData);
 
 
 const STATIC_TIMELINE_HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 9 to 17
@@ -494,15 +524,14 @@ getHourlySlots().forEach(hour => {
         </div>
 
         <div className="hours-summary">
-          <p className="total">{employee.totalHours || 0} hrs Total</p>
-          <p>{employee.regularHours || 0} hrs Regular</p>
-          <p>{employee.holidayHours || 0} hrs Holiday</p>
+           <p>{workingHours} hrs Regular</p>
+          <p>{leaveDays} days Holiday</p>
         </div>
       </div>
 
 
       {/* Progress Bar */}
-      <div className="progress-section">
+      {/* <div className="progress-section">
         <p className="progress-text">Hour breakdown: {employee.totalHours || 0} hrs</p>
         <div className="progress-bar">
           <div className="approved" style={{ width: "70%" }}></div>
@@ -514,7 +543,7 @@ getHourlySlots().forEach(hour => {
      
           <span className="legend orange">Pending: {employee.pendingHours || 0} hrs</span>
         </div>
-      </div>
+      </div> */}
 
       {/* Tabs */}
       <div className="tabs">
@@ -568,8 +597,8 @@ getHourlySlots().forEach(hour => {
   {activeTab === "timecard" ? (
     <div className="timecard-view">
       {timecardData && timecardData.length > 0 && (
-        <div className="project-phase-summary" style={{ marginTop: "2rem" }}>
-          <h4>Project / Phase Total Hours (Date-wise)</h4>
+        <div className="project-phase-summary" style={{ marginTop: "0.5rem" }}>
+          {/* <h4>Project / Phase Total Hours (Date-wise)</h4> */}
           <div className="table-wrapper">
             <table className="table summary-table">
               <thead>
@@ -703,11 +732,11 @@ getHourlySlots().forEach(hour => {
         })}
       </div>
 
-      <div className="legend-container">
+      {/* <div className="legend-container">
         <span className="legend-box work" /> Work
         <span className="legend-box leave" /> Leave
         <span className="legend-box break" /> Lunch Break
-      </div>
+      </div> */}
     </div>
   ) : null}
 </div>

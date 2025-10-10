@@ -17,6 +17,8 @@ const EmployeeDetail = () => {
     if (tab === "addEmployee") return navigate("/add_employee");
     if (tab === "addProject") return navigate("/add_project");
     if (tab === "dashboard") return navigate("/dashboard");
+    if (tab === "projects") return navigate("/projects");
+    if (tab === "logout") return navigate("/login"); 
     setActiveTab(tab);
   };
 
@@ -48,8 +50,6 @@ const EmployeeDetail = () => {
 
   return (
     <div className="container">
- 
-
       <div className="main">
         {/* <h1 className="title">Time & Attendance</h1> */}
 
@@ -98,12 +98,19 @@ const EmployeeDetail = () => {
           >
             Employee List
           </button>
-          <button className="tab" onClick={() => navigate("/projects")}>
-            Projects
+          <button
+          className={`tab ${activeTab === "projects" ? "active" : ""}`}
+          onClick={() => handleTabClick("projects")}
+        >
+          Projects
+        </button>
+        <button
+            className={`tab ${activeTab === "logout" ? "active" : ""}`} 
+            onClick={() => handleTabClick("logout")}
+          >
+            Logout
           </button>
-          {/* <button className="tab" onClick={() => handleTabClick("dashboard")}>
-            Dashboard
-          </button> */}
+          
         </div>
 
         {/* Search */}
