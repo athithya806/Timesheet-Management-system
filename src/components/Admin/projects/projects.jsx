@@ -23,6 +23,7 @@ const Project = () => {
   const [selectedPhaseInfo, setSelectedPhaseInfo] = useState({});
   const [viewMode, setViewMode] = useState("list");
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("projects");
 
   useEffect(() => {
     fetch("http://localhost:3001/getProjects")
@@ -42,6 +43,15 @@ const Project = () => {
       })
       .catch((err) => console.error(err));
   }, []);
+
+   const handleTabClick = (tab) => {
+    if (tab === "addEmployee") return navigate("/add_employee");
+    if (tab === "addProject") return navigate("/add_project");
+    if (tab === "employeeList") return navigate("/employee");
+    if (tab === "projects") return setActiveTab("projects");
+    if (tab === "logout") return navigate("/login"); 
+
+  };
 
   const handleEmployeeClick = (employeeId) => navigate(`/employee/${employeeId}`);
   const handleEditProject = (proj) => navigate("/add_project", { state: { projectData: proj } });
@@ -130,8 +140,9 @@ const Project = () => {
     filteredProjects.filter((p) => p.status?.toLowerCase() === status.toLowerCase()).length;
 
   return (
+    
     <div className="project-container">
-      <h1>Project Roles</h1>
+      {/* <h1>Project Roles</h1> */}
 
       {/* Top Stats */}
       <div className="stats-bar">
@@ -155,7 +166,7 @@ const Project = () => {
           <div className="icon progress"></div>
           <div>
             <h3>{countStatus("ongoing")}</h3>
-            <p>In Progress</p>
+            <p>Ongoing</p>
           </div>
         </div>
 
@@ -163,7 +174,7 @@ const Project = () => {
           <div className="icon pending"></div>
           <div>
             <h3>{countStatus("yet to start")}</h3>
-            <p>Pending</p>
+            <p>Yet to start</p>
           </div>
         </div>
 
@@ -175,6 +186,40 @@ const Project = () => {
     </div>
   </div> */}
       </div>
+      {/* --- Tabs Section --- */}
+<div className="tabs">
+  <button
+    className={`tab ${activeTab === "addEmployee" ? "active" : ""}`}
+    onClick={() => handleTabClick("addEmployee")}
+  >
+    Add Employee
+  </button>
+  <button
+    className={`tab ${activeTab === "addProject" ? "active" : ""}`}
+    onClick={() => handleTabClick("addProject")}
+  >
+    Add Project
+  </button>
+  <button
+    className={`tab ${activeTab === "employeeList" ? "active" : ""}`}
+    onClick={() => handleTabClick("employeeList")}
+  >
+    Employee List
+  </button>
+  <button
+    className={`tab ${activeTab === "projects" ? "active" : ""}`}
+    onClick={() => handleTabClick("projects")}
+  >
+    Projects
+  </button>
+   <button
+            className={`tab ${activeTab === "logout" ? "active" : ""}`} 
+            onClick={() => handleTabClick("logout")}
+          >
+            Logout
+          </button>
+</div>
+
 
       {/* Search + Toggle */}
       <div className="filter-toggle-bar">

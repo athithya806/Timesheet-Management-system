@@ -2,10 +2,10 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./components/dashboard/dashboard.jsx";
 import TimesheetDetail from "./components/timesheetDetails/timesheetDetail.jsx";
-import EmployeeDetail from "./components/admin/employeeDetails/employeeDetail.jsx";
-import Project from "./components/admin/projects/projects.jsx"; 
-import AddEmployee from "./components/admin/add_employee/add_employee.jsx"; 
-import AddProject from "./components/admin/add_project/add_project.jsx"; 
+import EmployeeDetail from "./components/Admin/employeeDetails/employeeDetail.jsx";
+import Project from "./components/Admin/projects/projects.jsx"; 
+import AddEmployee from "./components/Admin/add_employee/add_employee.jsx"; 
+import AddProject from "./components/Admin/add_project/add_project.jsx"; 
 import LoginPage from "./components/login_page/login.jsx"; 
 
 

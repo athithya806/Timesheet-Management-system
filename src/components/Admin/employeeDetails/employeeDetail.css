@@ -234,3 +234,13 @@
   .table, .search { width: 100%; }
   .card-view { justify-content: center; }
 }
+
+.tabs .tab:last-child {
+  margin-left: auto; /* pushes it to the right */
+  background-color: #007bff; /* blue background */
+  color: white;
+}
+
+.tabs .tab:last-child:hover {
+  background-color: #0056b3;
+}

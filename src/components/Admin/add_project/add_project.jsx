@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./add_project.css";
 
-
 const DEPARTMENTS = [
   "Innovative Manufacturing",
   "Smart Factory Center",
@@ -19,7 +18,6 @@ const AddProject = () => {
   const navigate = useNavigate();
   const projectData = location.state?.projectData || {};
 
-  // ✅ Date formatting helper
   const formatDateForInput = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -31,18 +29,10 @@ const AddProject = () => {
   const [clientName, setClientName] = useState(projectData.clientName || "");
   const [description, setDescription] = useState(projectData.description || "");
   const [status, setStatus] = useState(projectData.status || "ongoing");
-  const [plannedStartDate, setPlannedStartDate] = useState(
-    formatDateForInput(projectData.plannedStartDate)
-  );
-  const [plannedEndDate, setPlannedEndDate] = useState(
-    formatDateForInput(projectData.plannedEndDate)
-  );
-  const [actualStartDate, setActualStartDate] = useState(
-    formatDateForInput(projectData.actualStartDate)
-  );
-  const [actualEndDate, setActualEndDate] = useState(
-    formatDateForInput(projectData.actualEndDate)
-  );
+  const [plannedStartDate, setPlannedStartDate] = useState(formatDateForInput(projectData.plannedStartDate));
+  const [plannedEndDate, setPlannedEndDate] = useState(formatDateForInput(projectData.plannedEndDate));
+  const [actualStartDate, setActualStartDate] = useState(formatDateForInput(projectData.actualStartDate));
+  const [actualEndDate, setActualEndDate] = useState(formatDateForInput(projectData.actualEndDate));
   const [assignedMembers, setAssignedMembers] = useState(projectData.assignedMembers || []);
   const [projectType, setProjectType] = useState(projectData.projectType || "billable");
   const [phases] = useState(projectData.phases || []);
@@ -57,6 +47,11 @@ const AddProject = () => {
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [showDeptDropdown, setShowDeptDropdown] = useState(false);
 
+  const [activeTab, setActiveTab] = useState("addProject");
+
+  // 🔹 Fetch all projects for stats
+  const [projects, setProjects] = useState([]);
+
   useEffect(() => {
     const fetchMembers = async () => {
       try {
@@ -69,42 +64,78 @@ const AddProject = () => {
       }
     };
     fetchMembers();
+
+    // fetch all projects for stats
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/getprojects");
+        if (!res.ok) throw new Error("Failed to fetch projects");
+        const data = await res.json();
+        setProjects(data);
+      } catch (err) {
+        console.error("❌ Error fetching projects:", err);
+      }
+    };
+    fetchProjects();
   }, []);
 
-  // --- Members Handlers ---
-  const handleMemberChange = (e) => {
-    const value = e.target.value;
-    setSearchInput(value);
-    if (!value.trim()) {
-      setFilteredMembers([]);
-      setShowDropdown(false);
-      return;
-    }
-    const filtered = members
-      .filter(
-        (m) =>
-          m.fullName &&
-          m.fullName.toLowerCase().startsWith(value.toLowerCase()) &&
-          !assignedMembers.includes(m.fullName)
-      )
-      .sort((a, b) => a.fullName.localeCompare(b.fullName));
-    setFilteredMembers(filtered);
-    setShowDropdown(true);
+  // 🔹 Stats calculation
+  const totalProjects = projects.length;
+  const completedProjects = projects.filter((p) => p.status === "completed").length;
+  const inProgressProjects = projects.filter((p) => p.status === "ongoing").length;
+  const pendingProjects = projects.filter((p) => p.status === "yet to start").length;
+
+  const handleTabClick = (tab) => {
+    if (tab === "addEmployee") return navigate("/add_employee");
+    if (tab === "addProject") return navigate("/add_project");
+    if (tab === "employeeList") return navigate("/employee");
+    if (tab === "projects") return navigate("/projects");
+    if (tab === "logout") return navigate("/login"); 
+
+    setActiveTab(tab);
   };
 
-  const handleSelectMember = (fullName) => {
-    if (!assignedMembers.includes(fullName)) {
-      setAssignedMembers([...assignedMembers, fullName]);
-    }
-    setSearchInput("");
+  // --- Member selection handlers ---
+  // --- Member selection handlers ---
+const handleMemberChange = (e) => {
+  const value = e.target.value;
+  setSearchInput(value);
+
+  if (!value.trim()) {
+    setFilteredMembers([]);
     setShowDropdown(false);
-  };
+    return;
+  }
 
-  const handleRemoveMember = (fullName) => {
-    setAssignedMembers(assignedMembers.filter((m) => m !== fullName));
-  };
+  const filtered = members
+    .filter(
+      (m) =>
+        m.fullName &&
+        m.fullName.toLowerCase().startsWith(value.toLowerCase()) &&
+        !assignedMembers.includes(m.fullName) &&          // not already assigned
+        m.role?.toLowerCase() !== "admin" &&              // exclude admins
+        (selectedDepartments.length === 0 ||              // if no dept selected, show all
+          selectedDepartments.includes(m.department))    // only members in selected departments
+    )
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-  // --- Departments Handlers ---
+  setFilteredMembers(filtered);
+  setShowDropdown(true);
+};
+
+const handleSelectMember = (fullName) => {
+  if (!assignedMembers.includes(fullName)) {
+    setAssignedMembers([...assignedMembers, fullName]);
+  }
+  setSearchInput("");
+  setShowDropdown(false);
+};
+
+const handleRemoveMember = (fullName) => {
+  setAssignedMembers(assignedMembers.filter((m) => m !== fullName));
+};
+
+  // --- Department selection handlers ---
   const handleDepartmentChange = (e) => {
     const value = e.target.value;
     setDeptSearchInput(value);
@@ -129,7 +160,7 @@ const AddProject = () => {
     setSelectedDepartments(selectedDepartments.filter((d) => d !== dept));
   };
 
-  // --- Submit ---
+  // --- Submit handler ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!projectName || !description || selectedDepartments.length === 0) {
@@ -154,8 +185,8 @@ const AddProject = () => {
 
     try {
       const url = projectData.id
-        ? `http://localhost:3001/updateProject/${projectData.id}` // PUT endpoint for edit
-        : "http://localhost:3001/addProjects"; // POST for new
+        ? `http://localhost:3001/updateProject/${projectData.id}`
+        : "http://localhost:3001/addProjects";
 
       const method = projectData.id ? "PUT" : "POST";
 
@@ -179,6 +210,61 @@ const AddProject = () => {
   };
 
   return (
+    <div>
+      {/* 🔹 Stats Section (4 Cards) */}
+      <div className="stats-bar">
+        <div className="stat-box">
+          <h3>Total Projects</h3>
+          <p>{totalProjects}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Completed</h3>
+          <p>{completedProjects}</p>
+        </div>
+        <div className="stat-box">
+          <h3>In Progress</h3>
+          <p>{inProgressProjects}</p>
+        </div>
+        <div className="stat-box">
+          <h3>Pending</h3>
+          <p>{pendingProjects}</p>
+        </div>
+      </div>
+
+      {/* 🔹 Tabs Section */}
+      <div className="tabs">
+        <button
+          className={`tab ${activeTab === "addEmployee" ? "active" : ""}`}
+          onClick={() => handleTabClick("addEmployee")}
+        >
+          Add Employee
+        </button>
+        <button
+          className={`tab ${activeTab === "addProject" ? "active" : ""}`}
+          onClick={() => handleTabClick("addProject")}
+        >
+          Add Project
+        </button>
+        <button
+          className={`tab ${activeTab === "employeeList" ? "active" : ""}`}
+          onClick={() => handleTabClick("employeeList")}
+        >
+          Employee List
+        </button>
+        <button
+          className={`tab ${activeTab === "projects" ? "active" : ""}`}
+          onClick={() => handleTabClick("projects")}
+        >
+          Projects
+        </button>
+         <button
+            className={`tab ${activeTab === "logout" ? "active" : ""}`} 
+            onClick={() => handleTabClick("logout")}
+          >
+            Logout
+          </button>
+      </div>
+    {/* 🔹 Form Section - now clearly separated */}
     <div className="form-container">
       <h2>{projectData.projectName ? "Edit Project" : "Add Project"}</h2>
 
@@ -220,37 +306,6 @@ const AddProject = () => {
           </div>
         </div>
 
-        {/* Assign Members */}
-        <div className="form-group">
-          <label className="form-label">Assign Members</label>
-          <div className="multi-select-container">
-            <div className="selected-chips">
-              {assignedMembers.map((m) => (
-                <span key={m} className="chip">
-                  {m}
-                  <button type="button" className="chip-close" onClick={() => handleRemoveMember(m)}>×</button>
-                </span>
-              ))}
-            </div>
-            <input
-              className="form-input"
-              type="text"
-              placeholder="Type to search members..."
-              value={searchInput}
-              onChange={handleMemberChange}
-            />
-            {showDropdown && filteredMembers.length > 0 && (
-              <ul className="dropdown">
-                {filteredMembers.map((m) => (
-                  <li key={m.id} onClick={() => handleSelectMember(m.fullName)}>
-                    {m.fullName}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-
         {/* Departments */}
         <div className="form-group">
           <label className="form-label">Departments</label>
@@ -278,6 +333,37 @@ const AddProject = () => {
                   : DEPARTMENTS.filter((d) => !selectedDepartments.includes(d))
                 ).map((d) => (
                   <li key={d} onClick={() => handleSelectDepartment(d)}>{d}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+         {/* Assign Members */}
+        <div className="form-group">
+          <label className="form-label">Assign Members</label>
+          <div className="multi-select-container">
+            <div className="selected-chips">
+              {assignedMembers.map((m) => (
+                <span key={m} className="chip">
+                  {m}
+                  <button type="button" className="chip-close" onClick={() => handleRemoveMember(m)}>×</button>
+                </span>
+              ))}
+            </div>
+            <input
+              className="form-input"
+              type="text"
+              placeholder="Type to search members..."
+              value={searchInput}
+              onChange={handleMemberChange}
+            />
+            {showDropdown && filteredMembers.length > 0 && (
+              <ul className="dropdown">
+                {filteredMembers.map((m) => (
+                  <li key={m.id} onClick={() => handleSelectMember(m.fullName)}>
+                    {m.fullName}
+                  </li>
                 ))}
               </ul>
             )}
@@ -364,6 +450,7 @@ const AddProject = () => {
         </div>
       </form>
     </div>
+  </div>
   );
 };
 
