@@ -1,3 +1,11 @@
+.stats-bar {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 5px;
+    flex-wrap: wrap;
+    padding: 20px;
+}
+
 /* Container */
 .form-container {
   max-width: 700px;
@@ -12,12 +20,21 @@
 /* Tabs */
 .form-tabs {
   display: flex;
+  justify-content: space-between; /* Pushes first 4 tabs left, logout right */
+  align-items: center;
   border-bottom: 1px solid #e0e0e0;
-  margin-bottom: 25px;
+  margin-bottom: 40px;
 }
 
+/* Tab groups (optional if using separate divs for spacing) */
+.tab-group {
+  display: flex;
+  gap: 10px; /* Space between tabs in the same group */
+  align-items: center;
+}
+
+/* Individual tabs */
 .form-tab {
-  flex: 1;
   text-align: center;
   padding: 12px 0;
   font-size: 14px;
@@ -135,4 +152,36 @@
     flex-direction: column;
     gap: 15px;
   }
+}
+
+/* Tabs container tweaks */
+.tab-group:first-child {
+    margin-left: 10px; /* reduced to move first 4 tabs more left */
+    gap: 15px; /* reduce space between tabs */
+    flex-wrap: nowrap; /* prevent wrapping */
+}
+
+.tab-group:last-child {
+    margin-right: 10px; /* reduce space for logout */
+    gap: 5px; /* optional: tighter spacing for logout */
+}
+
+/* Keep Add Employee and other tabs on a single line */
+.tab-group:first-child .form-tab {
+    white-space: nowrap;   /* prevent text wrap */
+    padding: 12px 14px;    /* slightly reduce horizontal padding to fit */
+    flex: 0;               /* prevent stretching */
+}
+/* Logout tab styling */
+.tab-group:last-child .form-tab {
+    background-color: #1976d2; /* blue background */
+    color: #fff;               /* white text */
+    padding: 10px 16px;        /* optional: adjust padding to look like a button */
+    border-radius: 6px;        /* rounded corners */
+    border-bottom: none;       /* remove bottom border if needed */
+    cursor: pointer;
+}
+
+.tab-group:last-child .form-tab:hover {
+    background-color: #1259a8; /* darker blue on hover */
 }

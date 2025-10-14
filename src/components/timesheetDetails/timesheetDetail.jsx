@@ -418,7 +418,8 @@ getHourlySlots().forEach(hour => {
     }
   };
   useEffect(() => {
-    fetch("http://localhost:3001/serverDate")
+    fetch("http://192.168.1.245:3001/serverDate")
+
       .then((res) => res.json())
       .then((data) => {
         const srvDate = new Date(data.date);

@@ -184,3 +184,10 @@
 .dropdown li:hover {
   background: #f0f0f0;
 }
+.tabs {
+    display: flex;
+    gap: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 24px;
+    margin-left: 20px;
+}
