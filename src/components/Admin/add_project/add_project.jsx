@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./add_project.css";
+import logo from "../../../assests/logo.jpeg";
 
 const DEPARTMENTS = [
   "Innovative Manufacturing",
@@ -90,7 +91,7 @@ const AddProject = () => {
     if (tab === "addProject") return navigate("/add_project");
     if (tab === "employeeList") return navigate("/employee");
     if (tab === "projects") return navigate("/projects");
-    if (tab === "logout") return navigate("/login"); 
+    if (tab === "logout") return navigate("/login");
     setActiveTab(tab);
   };
 
@@ -157,7 +158,6 @@ const AddProject = () => {
     setSelectedDepartments(selectedDepartments.filter((d) => d !== dept));
   };
 
-  // --- Close dropdowns when clicking outside ---
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (memberRef.current && !memberRef.current.contains(event.target)) {
@@ -171,7 +171,6 @@ const AddProject = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- Submit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!projectName || !description || selectedDepartments.length === 0) {
@@ -221,7 +220,13 @@ const AddProject = () => {
   };
 
   return (
-    <div>
+    <div className="add-project-wrapper">
+      {/* Top Navbar */}
+      <header className="top-navbar">
+        <img src={logo} alt="Company Logo" className="navbar-logo" />
+        <h1 className="navbar-title">Timesheet</h1>
+      </header>
+
       {/* Stats */}
       <div className="stats-bar">
         <div className="stat-box">

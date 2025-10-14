@@ -174,7 +174,7 @@
 }
 /* Logout tab styling */
 .tab-group:last-child .form-tab {
-    background-color: #1976d2; /* blue background */
+    background-color:red; /* blue background */
     color: #fff;               /* white text */
     padding: 10px 16px;        /* optional: adjust padding to look like a button */
     border-radius: 6px;        /* rounded corners */
@@ -185,3 +185,25 @@
 .tab-group:last-child .form-tab:hover {
     background-color: #1259a8; /* darker blue on hover */
 }
+/* Top Navbar */
+.top-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px; /* navbar padding */
+  background-color: #1d4ed8;
+  color: #fff;
+  z-index: 1000;
+  box-sizing: border-box;
+  height: 64px; /* explicitly define height */
+}
+
+/* Wrapper below navbar */
+.add-employee-wrapper {
+  padding-top: 80px; /* slightly larger than navbar height to prevent overlap */
+}
+

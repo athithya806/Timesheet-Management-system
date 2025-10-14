@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./add_employee.css";
+import logo from "../../../assests/logo.jpeg";
 
 const DEPARTMENTS = [
   "Innovative Manufacturing",
@@ -16,14 +17,10 @@ const DEPARTMENTS = [
 const ROLES = ["admin", "employee"];
 
 const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
-  // ✅ Always call hooks at the top
   const navigate = useNavigate();
   const routerLocation = useLocation();
-
-  // Use prop location if provided (for profile edit), otherwise router location
   const location = propLocation || routerLocation;
 
-  // Existing employee data (for edit mode)
   const existingEmployee = location.state?.employeeData || null;
   const isEditMode = Boolean(existingEmployee);
 
@@ -45,8 +42,6 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("addEmployee");
 
-
-  // Fetch employees for stats (if not hiding extras)
   useEffect(() => {
     if (!hideExtras) {
       fetch("http://localhost:3001/api/members")
@@ -91,7 +86,8 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveImage = () => setFormData((prev) => ({ ...prev, imagePath: "" }));
+  const handleRemoveImage = () =>
+    setFormData((prev) => ({ ...prev, imagePath: "" }));
 
   const passwordIsValid = () => {
     const regex =
@@ -101,19 +97,16 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!passwordIsValid()) {
       alert(
         "Password must include uppercase, lowercase, number, special character and be at least 8 characters long."
       );
       return;
     }
-
     try {
       const endpoint = isEditMode
         ? `http://localhost:3001/api/members/${existingEmployee.id}`
         : "http://localhost:3001/members";
-
       const method = isEditMode ? "PUT" : "POST";
       const payload = isEditMode
         ? { ...formData, empId: existingEmployee.empId }
@@ -133,9 +126,7 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
           : "Employee added successfully!"
       );
 
-      // Navigate back to profile if editing from profile page
       if (isEditMode && hideExtras) return navigate("/profile");
-
       navigate("/employee");
     } catch (error) {
       alert("Failed to save employee: " + error.message);
@@ -143,8 +134,14 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
   };
 
   return (
-    <div className="add-employee-page">
-      {/* ===== Stats Cards ===== */}
+    <div className="add-employee-wrapper">
+      {/* Top Navbar */}
+      <header className="top-navbar">
+        <img src={logo} alt="Company Logo" className="navbar-logo" />
+        <h1 className="navbar-title">Timesheet</h1>
+      </header>
+
+      {/* Stats */}
       {!hideExtras && (
         <div className="stats-bar">
           <div className="stat-box">
@@ -158,9 +155,8 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
             <div className="icon admin"></div>
             <div>
               <h3>
-                {employees.filter(
-                  (e) => e.role?.toLowerCase() === "admin"
-                ).length}
+                {employees.filter((e) => e.role?.toLowerCase() === "admin")
+                  .length}
               </h3>
               <p>Admins</p>
             </div>
@@ -169,9 +165,8 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
             <div className="icon employee"></div>
             <div>
               <h3>
-                {employees.filter(
-                  (e) => e.role?.toLowerCase() !== "admin"
-                ).length}
+                {employees.filter((e) => e.role?.toLowerCase() !== "admin")
+                  .length}
               </h3>
               <p>Employees</p>
             </div>
@@ -179,49 +174,46 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
         </div>
       )}
 
-      {/* ===== Tabs ===== */}
-         <div className="form-tabs">
-  {/* Group 1: First 4 tabs */}
-  <div className="tab-group">
-    <div
-      className={`form-tab ${activeTab === "addEmployee" ? "active" : ""}`}
-      onClick={() => handleTabClick("addEmployee")}
-    >
-      Add Employee
-    </div>
-    <div
-      className={`form-tab ${activeTab === "addProject" ? "active" : ""}`}
-      onClick={() => handleTabClick("addProject")}
-    >
-      Add Project
-    </div>
-    <div
-      className={`form-tab ${activeTab === "employeeList" ? "active" : ""}`}
-      onClick={() => handleTabClick("employeeList")}
-    >
-      Employee List
-    </div>
-    <div
-      className={`form-tab ${activeTab === "projects" ? "active" : ""}`}
-      onClick={() => handleTabClick("projects")}
-    >
-      Projects
-    </div>
-  </div>
+      {/* Tabs */}
+      <div className="form-tabs">
+        <div className="tab-group">
+          <div
+            className={`form-tab ${activeTab === "addEmployee" ? "active" : ""}`}
+            onClick={() => handleTabClick("addEmployee")}
+          >
+            Add Employee
+          </div>
+          <div
+            className={`form-tab ${activeTab === "addProject" ? "active" : ""}`}
+            onClick={() => handleTabClick("addProject")}
+          >
+            Add Project
+          </div>
+          <div
+            className={`form-tab ${activeTab === "employeeList" ? "active" : ""}`}
+            onClick={() => handleTabClick("employeeList")}
+          >
+            Employee List
+          </div>
+          <div
+            className={`form-tab ${activeTab === "projects" ? "active" : ""}`}
+            onClick={() => handleTabClick("projects")}
+          >
+            Projects
+          </div>
+        </div>
 
-  {/* Group 2: Logout tab */}
-  <div className="tab-group">
-    <div
-      className={`form-tab ${activeTab === "logout" ? "active" : ""}`}
-      onClick={() => handleTabClick("logout")}
-    >
-      Logout
-    </div>
-  </div>
-</div>
+        <div className="tab-group">
+          <div
+            className={`form-tab ${activeTab === "logout" ? "active" : ""}`}
+            onClick={() => handleTabClick("logout")}
+          >
+            Logout
+          </div>
+        </div>
+      </div>
 
-
-      {/* ===== Form Section ===== */}
+      {/* Form */}
       <div className="form-container">
         <div className="form-tabs">
           <div className="form-tab active">
@@ -230,6 +222,7 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
         </div>
 
         <form onSubmit={handleSubmit}>
+          {/* Name & Email */}
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Full Name</label>
@@ -257,6 +250,7 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
             </div>
           </div>
 
+          {/* Phone & Department */}
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Contact Number</label>
@@ -289,6 +283,7 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
             </div>
           </div>
 
+          {/* Role & Password */}
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Role</label>
@@ -307,9 +302,9 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
                 ))}
               </select>
             </div>
-            <div className="form-group">
+            <div className="form-group password-field">
               <label className="form-label">Password</label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="password-wrapper">
                 <input
                   className="form-input"
                   type={showPassword ? "text" : "password"}
@@ -318,18 +313,11 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
                   value={formData.password}
                   onChange={handleChange}
                   required
-                  style={{ flex: 1 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
                   className="show-password-btn"
-                  style={{
-                    cursor: "pointer",
-                    border: "none",
-                    background: "transparent",
-                  }}
-                  tabIndex={-1}
                 >
                   {showPassword ? "Hide" : "Show"}
                 </button>
@@ -342,6 +330,7 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
             </div>
           </div>
 
+          {/* Image Upload */}
           <div className="form-group">
             <label className="form-label">Upload Image</label>
             <input
@@ -351,36 +340,16 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
               onChange={handleImageChange}
             />
             {formData.imagePath && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginTop: 8,
-                  gap: 8,
-                }}
-              >
+              <div className="image-preview-wrapper">
                 <img
                   src={formData.imagePath}
                   alt="Preview"
-                  style={{
-                    width: 80,
-                    height: 80,
-                    borderRadius: 8,
-                    objectFit: "cover",
-                    border: "1px solid #ccc",
-                  }}
+                  className="image-preview"
                 />
                 <button
                   type="button"
-                  onClick={handleRemoveImage}
                   className="remove-img-btn"
-                  style={{
-                    padding: 4,
-                    border: "none",
-                    backgroundColor: "#eee",
-                    borderRadius: 4,
-                    cursor: "pointer",
-                  }}
+                  onClick={handleRemoveImage}
                 >
                   Remove
                 </button>
@@ -388,45 +357,26 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
             )}
           </div>
 
+          {/* Gender */}
           <div className="form-group">
             <label className="form-label">Gender</label>
             <div className="gender-options">
-              <button
-                type="button"
-                className={`gender-btn ${
-                  formData.gender === "male" ? "active" : ""
-                }`}
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, gender: "male" }))
-                }
-              >
-                Male
-              </button>
-              <button
-                type="button"
-                className={`gender-btn ${
-                  formData.gender === "female" ? "active" : ""
-                }`}
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, gender: "female" }))
-                }
-              >
-                Female
-              </button>
-              <button
-                type="button"
-                className={`gender-btn ${
-                  formData.gender === "other" ? "active" : ""
-                }`}
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, gender: "other" }))
-                }
-              >
-                Other
-              </button>
+              {["male", "female", "other"].map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  className={`gender-btn ${formData.gender === g ? "active" : ""}`}
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, gender: g }))
+                  }
+                >
+                  {g.charAt(0).toUpperCase() + g.slice(1)}
+                </button>
+              ))}
             </div>
           </div>
 
+          {/* Submit */}
           <div className="form-actions">
             <button className="btn btn-primary" type="submit">
               {isEditMode ? "Save Changes" : "Add Employee"}
