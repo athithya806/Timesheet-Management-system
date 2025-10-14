@@ -185,25 +185,22 @@
 .tab-group:last-child .form-tab:hover {
     background-color: #1259a8; /* darker blue on hover */
 }
-/* Top Navbar */
+.add-employee-page {
+  padding-top: 70px; /* same height as navbar + some spacing */
+}
+
+/* Adjust if your navbar height changes */
 .top-navbar {
-  position: fixed;
+  position: fixed; /* keeps it always at top */
   top: 0;
   left: 0;
   width: 100%;
+  z-index: 1000; /* ensures it stays above content */
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 24px; /* navbar padding */
-  background-color: #1d4ed8;
+  gap: 15px;
+  padding: 12px 20px;
+  background-color: #1f2937;
   color: #fff;
-  z-index: 1000;
-  box-sizing: border-box;
-  height: 64px; /* explicitly define height */
-}
-
-/* Wrapper below navbar */
-.add-employee-wrapper {
-  padding-top: 80px; /* slightly larger than navbar height to prevent overlap */
 }
 

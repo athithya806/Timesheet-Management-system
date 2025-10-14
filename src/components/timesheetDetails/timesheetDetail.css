@@ -340,12 +340,17 @@
   border-radius: 4px;
   transition: border 0.2s ease, box-shadow 0.2s ease;
 }
+/* === Remove Blue Focus Shade from Form Inputs === */
 .field input:focus,
-.field select:focus {
-  border-color: #f4b400;
-  box-shadow: 0 0 5px rgba(244, 180, 0, 0.4);
-  outline: none;
+.field input:focus-visible,
+.field select:focus,
+.field select:focus-visible {
+  border-color: #f4b400 !important; /* gold border */
+  outline: none !important;
+  box-shadow: none !important; /* removes blue glow */
+  background-color: #fff !important; /* removes blue background shade */
 }
+
 
 /* Colored accents for select fields */
 .field select[name="type"] { border-left: 4px solid #2196f3; }
@@ -415,3 +420,56 @@
 .timeline-rows-wrapper {
   overflow-x: auto;
 }
+
+/* =======================
+   Month & Year Selector Styling (beside tabs)
+======================= */
+.month-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 20px; /* aligns next to tabs */
+  vertical-align: middle;
+}
+
+.month-selector select {
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* Hover effect */
+.month-selector select:hover {
+  border-color: #f4b400;
+  box-shadow: 0 0 5px rgba(244, 180, 0, 0.25);
+}
+
+/* Focus effect */
+.month-selector select:focus {
+  outline: none;
+  border-color: #f4b400;
+  box-shadow: 0 0 6px rgba(244, 180, 0, 0.35);
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+  .month-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-left: 0;
+    margin-top: 10px;
+  }
+
+  .month-selector select {
+    width: 100%;
+  }
+}
+
