@@ -112,9 +112,9 @@ const AddEmployee = () => {
         : "http://localhost:3001/members";
 
       const method = isEditMode ? "PUT" : "POST";
-      const payload = isEditMode
-        ? { ...formData, empId: existingEmployee.empId }
-        : formData;
+
+      // ✅ Use updated formData for both add and edit
+      const payload = { ...formData };
 
       const res = await fetch(endpoint, {
         method,
@@ -194,6 +194,7 @@ const AddEmployee = () => {
           </button>
         </div>
       </div>
+
       {/* ===== Form Section ===== */}
       <div className="form-container">
         <div className="form-tabs">
@@ -203,9 +204,20 @@ const AddEmployee = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* ===== Your existing form fields ===== */}
-
           <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Employee ID</label>
+              <input
+                className="form-input"
+                type="text"
+                name="empId"
+                placeholder="TANSAMEMP001"
+                value={formData.empId}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
             <div className="form-group">
               <label className="form-label">Full Name</label>
               <input
