@@ -7,6 +7,7 @@ import Project from "./components/Admin/projects/projects.jsx";
 import AddEmployee from "./components/Admin/add_employee/add_employee.jsx"; 
 import AddProject from "./components/Admin/add_project/add_project.jsx"; 
 import LoginPage from "./components/login_page/login.jsx"; 
+import ProfilePage from "./components/profile/ProfilePage";
 
 
 import ForgotPassword from "./components/login_page/ForgotPassword";
@@ -37,6 +38,8 @@ function App() {
         {/* Add Project route */}
         <Route path="/add_project" element={<AddProject />} />
 
+         <Route path="/profile" element={<ProfilePage />} />
+         
         {/* Employee details route */}
         <Route path="/employee" element={<EmployeeDetail />} />
           <Route path="/authentication/forgot-password" element={<ForgotPassword />} />

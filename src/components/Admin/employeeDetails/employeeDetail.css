@@ -239,6 +239,8 @@
   margin-left: auto; /* pushes it to the right */
   background-color: #007bff; /* blue background */
   color: white;
+  margin-right: 20px;
+
 }
 
 .tabs .tab:last-child:hover {

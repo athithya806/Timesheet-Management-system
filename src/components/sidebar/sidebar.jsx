@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // <-- import
 import "./sidebar.css";
 import { FaUserCircle, FaClock, FaSignOutAlt } from "react-icons/fa";
 
 const Sidebar = () => {
   const [activeItem, setActiveItem] = useState("Profile");
+  const navigate = useNavigate(); // <-- hook
 
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -13,20 +15,24 @@ const Sidebar = () => {
     e.currentTarget.style.setProperty("--y", `${y}px`);
   };
 
+  // <-- define handleClick
+  const handleClick = (item, path) => {
+    setActiveItem(item);
+    navigate(path);
+  };
+
   return (
     <div className="sidebar">
-      {/* flowing animated background */}
       <div className="flow-bg"></div>
 
       <div className="sidebar-header">
         <h2 className="logo">TANSAM</h2>
       </div>
 
-      {/* top menu */}
       <ul className="menu-list top-menu">
         <li
           className={`menu-item ${activeItem === "Profile" ? "active" : ""}`}
-          onClick={() => setActiveItem("Profile")}
+          onClick={() => handleClick("Profile", "/profile")}
           onMouseMove={handleMouseMove}
         >
           <FaUserCircle /> Profile
@@ -35,7 +41,7 @@ const Sidebar = () => {
 
         <li
           className={`menu-item ${activeItem === "Timesheet" ? "active" : ""}`}
-          onClick={() => setActiveItem("Timesheet")}
+          onClick={() => handleClick("Timesheet", "/timesheet")}
           onMouseMove={handleMouseMove}
         >
           <FaClock /> Timesheet
@@ -43,12 +49,11 @@ const Sidebar = () => {
         </li>
       </ul>
 
-      {/* only bottom menu */}
       <div className="bottom-section">
         <ul className="menu-list bottom-menu">
           <li
             className={`menu-item logout ${activeItem === "Logout" ? "active" : ""}`}
-            onClick={() => setActiveItem("Logout")}
+            onClick={() => handleClick("Logout", "/logout")}
             onMouseMove={handleMouseMove}
           >
             <FaSignOutAlt /> Logout
