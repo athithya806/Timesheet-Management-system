@@ -111,9 +111,7 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
         : "http://localhost:3001/members";
 
       const method = isEditMode ? "PUT" : "POST";
-      const payload = isEditMode
-        ? { ...formData, empId: existingEmployee.empId }
-        : formData;
+     const payload = { ...formData };
 
       const res = await fetch(endpoint, {
         method,
@@ -226,6 +224,18 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
       <div className="form-container">
         <form onSubmit={handleSubmit}>
           {/* Full Name & Email */}
+          <div className="form-group">
+              <label className="form-label">Emp ID</label>
+              <input
+                className="form-input"
+                type="text"
+                name="empId"
+                placeholder="empId"
+                value={formData.empId}
+                onChange={handleChange}
+                required
+              />
+            </div>
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Full Name</label>
