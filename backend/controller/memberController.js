@@ -125,6 +125,7 @@ export const updateMember = (db) => async (req, res) => {
     }
 
     let sql, values;
+
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
       sql = `
@@ -136,7 +137,7 @@ export const updateMember = (db) => async (req, res) => {
     } else {
       sql = `
         UPDATE members
-        SET fullName = ?, email = ?, phone = ?, empId = ?, department = ?, role = ?, imagePath = ?
+        SET fullName = ?, email = ?, phone = ?, empId = ?, department = ?, role = ?, imagePath = ?, gender = ?
         WHERE id = ?
       `;
       values = [fullName, email, phone, empId, department, role, savedImagePath, gender, id];
@@ -150,6 +151,8 @@ export const updateMember = (db) => async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
 
 // 🔐 Login
 export const login = (db) => async (req, res) => {

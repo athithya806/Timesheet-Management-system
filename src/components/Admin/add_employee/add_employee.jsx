@@ -111,7 +111,10 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
         : "http://localhost:3001/members";
 
       const method = isEditMode ? "PUT" : "POST";
-     const payload = { ...formData };
+    const payload = { ...formData };
+if (isEditMode) {
+  delete payload.password; // remove password so it won't be sent
+}
 
       const res = await fetch(endpoint, {
         method,
@@ -318,16 +321,17 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
             <div className="form-group">
               <label className="form-label">Password</label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  className="form-input"
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Enter password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  style={{ flex: 1 }}
-                />
+             <input
+  className="form-input"
+  type={showPassword ? "text" : "password"}
+  name="password"
+  placeholder={isEditMode ? "Password cannot be changed" : "Enter password"}
+  value={formData.password}
+  onChange={handleChange}
+  required={!isEditMode} // required only for new employee
+  disabled={isEditMode} // disable on edit
+  style={{ flex: 1 }}
+/>
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
