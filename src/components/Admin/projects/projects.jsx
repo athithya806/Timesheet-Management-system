@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./projects.css";
-import logo from "../../../assests/logo.jpeg";
+import logo from "../../../assests/logo.png";
 
 const phasesList = ["Design", "Development", "Testing", "Release", "Bug Fix"];
 

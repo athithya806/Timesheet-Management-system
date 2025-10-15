@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./add_project.css";
-import logo from "../../../assests/logo.jpeg";
+import logo from "../../../assests/logo.png";
 
 const DEPARTMENTS = [
   "Innovative Manufacturing",

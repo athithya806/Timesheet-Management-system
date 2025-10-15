@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./employeeDetail.css"; 
-import logo from "../../../assests/logo.jpeg";
+import logo from "../../../assests/logo.png";
 
 const EmployeeDetail = () => {
   const navigate = useNavigate();

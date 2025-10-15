@@ -214,12 +214,14 @@
   padding: 0 24px;
   z-index: 1000;
 }
-
 .navbar-logo {
   width: 40px;
   height: 40px;
-  object-fit: contain;
+  border-radius: 50%;         /* Circle crop */
+  object-fit: cover;          /* Crops excess white */
+  display: block;
 }
+
 
 .navbar-title {
   font-size: 24px;

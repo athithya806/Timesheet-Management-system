@@ -181,10 +181,6 @@
     border-bottom: none;       /* remove bottom border if needed */
     cursor: pointer;
 }
-
-.tab-group:last-child .form-tab:hover {
-    background-color: #1259a8; /* darker blue on hover */
-}
 .add-employee-page {
   padding-top: 70px; /* same height as navbar + some spacing */
 }

@@ -22,7 +22,7 @@ const ProfilePage = () => {
 
   if (!employee) return <p className="loading-text">Loading profile...</p>;
 
-  // If editing, show only the AddEmployee form
+  // If editing, show the AddEmployee form
   if (editing) {
     return (
       <div className="profile-page">
@@ -37,7 +37,6 @@ const ProfilePage = () => {
     );
   }
 
-  // Otherwise, show profile card
   return (
     <div className="profile-page">
       <Sidebar />
@@ -55,15 +54,30 @@ const ProfilePage = () => {
 
         <div className="profile-card">
           <div className="profile-image-container">
-            <img
-              src={
-                employee.imagePath
-                  ? `http://localhost:3001${employee.imagePath}`
-                  : `https://ui-avatars.com/api/?name=${employee.fullName}&background=blue&color=fff&size=128`
-              }
-              alt={employee.fullName}
-              className="profile-image"
-            />
+            {employee.imagePath ? (
+              <img
+                src={
+                  employee.imagePath.startsWith("/uploads")
+                    ? `http://localhost:3001${employee.imagePath}`
+                    : `http://localhost:3001/uploads/${employee.imagePath}`
+                }
+                alt={employee.fullName}
+                className="profile-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = "none"; // Hide broken image
+                  const fallback = document.createElement("div");
+                  fallback.className = "profile-placeholder";
+                  fallback.innerText =
+                    employee.fullName?.charAt(0).toUpperCase() || "E";
+                  e.target.parentNode.appendChild(fallback);
+                }}
+              />
+            ) : (
+              <div className="profile-placeholder">
+                {employee.fullName?.charAt(0).toUpperCase() || "E"}
+              </div>
+            )}
           </div>
 
           <div className="profile-details">

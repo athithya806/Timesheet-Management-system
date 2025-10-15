@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./add_employee.css";
-import logo from "../../../assests/logo.jpeg";
+import logo from "../../../assests/logo.png";
 
 const DEPARTMENTS = [
   "Innovative Manufacturing",
@@ -341,7 +341,7 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
           </div>
 
           {/* Upload Image */}
-          <div className="form-group">
+          {/* <div className="form-group">
             <label className="form-label">Upload Image</label>
             <input
               className="form-input"
@@ -385,10 +385,10 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
                 </button>
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Gender */}
-          <div className="form-group">
+          {/* <div className="form-group">
             <label className="form-label">Gender</label>
             <div className="gender-options">
               <button
@@ -425,7 +425,7 @@ const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
                 Other
               </button>
             </div>
-          </div>
+          </div> */}
 
           <div className="form-actions">
             <button className="btn btn-primary" type="submit">

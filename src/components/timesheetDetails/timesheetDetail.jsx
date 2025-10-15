@@ -19,11 +19,12 @@ const TimesheetDetail = () => {
   const [employee, setEmployee] = useState({});
   const [projects, setProjects] = useState([]);
   const [serverToday, setServerToday] = useState(null);
-
   const [hourlyDetails, setHourlyDetails] = useState({});
   const [formMode, setFormMode] = useState("");
 
   const [timecardData, setTimecardData] = useState([]);
+  const leaveDays = getLeaveDayCount(timecardData);
+
   // For editing hourly project fields, example initialized as empty object
   const [editProjectsByHour, setEditProjectsByHour] = useState({});
 const minHour = 9;   // e.g. earliest checkIn
@@ -41,6 +42,15 @@ const maxHour = 19;
     if (mer === "AM" && h === 12) h = 24;
     return h;
   };
+   
+const projectPhaseOptions = {
+  Software: ["Design", "Development", "Testing", "Release", "Bug Fix"],
+  "AR/VR": ["Design", "Development", "Testing", "Release", "Bug Fix"],
+  Engineering: ["Design", "Development", "Testing", "Release", "Bug Fix"],
+  Training: ["Design", "Development", "Deployment"], // As requested
+  General: ["Meeting"] // Custom - maps to "Design", "Development"
+};
+  
 
   const updateHourDetail = (hour, key, value) => {
     setHourlyDetails((prev) => {
@@ -90,6 +100,36 @@ const maxHour = 19;
 //   });
 // });
 
+function getHourSummaries(timecardData) {
+  let totalHours = 0;
+  let workingHours = 0;
+
+  timecardData.forEach(entry => {
+    let hourBlocks = [];
+    try {
+      hourBlocks = JSON.parse(entry.hourBlocks || "[]");
+    } catch {
+      hourBlocks = [];
+    }
+    const hours = hourBlocks.length;
+    totalHours += hours;
+    if (entry.status !== "Leave") {
+      workingHours += hours;
+    }
+  });
+
+  return { totalHours, workingHours };
+}
+
+const { totalHours, workingHours } = getHourSummaries(timecardData);
+
+function getLeaveDayCount(timecardData) {
+  const dates = new Set();
+  timecardData.forEach(entry => {
+    if (entry.status === "Leave") dates.add(entry.date);
+  });
+  return dates.size;
+}
 
 const STATIC_TIMELINE_HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 9 to 17
 const timelineHeaders = STATIC_TIMELINE_HOURS.map(hour => {
@@ -300,7 +340,7 @@ const openEditPanel = (date) => {
       [hour]: { ...prev[hour], [field]: value }
     }));
   };
-  const taskOptions = {
+   const taskOptions = {
     Software: {
       Design: ["POC", "Architecture", "UI/UX"],
       Development: ["Frontend", "Backend", "Parameter Tuning"],
@@ -308,20 +348,30 @@ const openEditPanel = (date) => {
       Release: ["Configuration Management", "Deploy"],
       "Bug Fix": ["Error", "New Feature"],
     },
+    "AR/VR": {
+      Design: ["Storyboard", "3D Modeling", "Animation"],
+      Development: ["Unity Dev", "Augmented Reality", "Virtual Reality"],
+      Testing: ["Unit Testing", "System Testing"],
+      Release: ["Configuration Management", "Deploy", "error"],
+      "Bug Fix": ["Error", "New feature"],
+    }, 
     Engineering: {
-      Design: ["Blueprint", "Simulation"],
-      Development: ["Prototype", "Fabrication"],
-      Testing: ["Load Testing", "Field Testing"],
-      Release: ["Handover", "Maintenance"],
-      "Bug Fix": ["Repair", "Upgrade"],
+      Design: ["POC", "Data Collection", 'Simulation'],
+      Development: ["Mechnical", "Electrical", "firmware", "Robotics"],
+      Testing: ["Unit Testing", "System Testing"],
+      Release: ["Configuration Management", "Deploy"],
+      "Bug Fix": ["Error", "New Feature"],
     },
-    Training: {
+      Training : {
       Design: ["Curriculum Design"],
-      Development: ["Material Preparation"],
-      Testing: ["Mock Sessions"],
-      Release: ["Delivery"],
-      "Bug Fix": ["Content Update"],
+      Development: ["Content Creation", "Assessment"],
+      Deployment: ["Conduct training", "Evaluation"],
+      
     },
+  General: {
+    Meeting: ["Requirement Gathering", "Project Clarification", "Demo"],
+  },
+    
   };
   // Save timesheet handler
    const handleSaveTimesheet = async () => {
@@ -373,7 +423,7 @@ getHourlySlots().forEach(hour => {
     }
   };
   useEffect(() => {
-    fetch("http://192.168.1.245:3001/serverDate")
+    fetch("http://localhost:3001/serverDate")
 
       .then((res) => res.json())
       .then((data) => {
@@ -478,17 +528,16 @@ getHourlySlots().forEach(hour => {
           <h2>{employee.fullName || "Name not loaded"}</h2>
           <p className="role">{employee.role || "Role not loaded"}</p>
         </div>
-
         <div className="hours-summary">
-          <p className="total">{employee.totalHours || 0} hrs Total</p>
-          <p>{employee.regularHours || 0} hrs Regular</p>
-          <p>{employee.holidayHours || 0} hrs Holiday</p>
+           <p>{workingHours} hrs Regular</p>
+          <p>{leaveDays} days Holiday</p>
         </div>
+  
       </div>
 
 
       {/* Progress Bar */}
-      <div className="progress-section">
+      {/* <div className="progress-section">
         <p className="progress-text">Hour breakdown: {employee.totalHours || 0} hrs</p>
         <div className="progress-bar">
           <div className="approved" style={{ width: "70%" }}></div>
@@ -500,7 +549,7 @@ getHourlySlots().forEach(hour => {
      
           <span className="legend orange">Pending: {employee.pendingHours || 0} hrs</span>
         </div>
-      </div>
+      </div> */}
 
       {/* Tabs */}
       <div className="tabs">
@@ -768,8 +817,10 @@ getHourlySlots().forEach(hour => {
         >
           <option value="">Select Category</option>
           <option>Software</option>
+          <option>AR/VR</option>
           <option>Engineering</option>
           <option>Training</option>
+          <option>General</option>
         </select>
       </div>
 
@@ -797,13 +848,13 @@ getHourlySlots().forEach(hour => {
           disabled={formMode === "Leave"}
         >
           <option value="">-- Select Phase --</option>
-          <option value="Design">Design</option>
-          <option value="Development">Development</option>
-          <option value="Testing">Testing</option>
-          <option value="Release">Release</option>
-          <option value="Bug Fix">Bug Fix</option>
+          {(projectPhaseOptions[hourData.category] || projectPhaseOptions['Software']).map((phase, idx) => (
+            <option key={idx} value={phase}>{phase}</option>
+          ))}
         </select>
       </div>
+
+      
 
       <div className="field">
         <label>Project Task</label>

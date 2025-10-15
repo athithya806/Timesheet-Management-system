@@ -281,7 +281,7 @@
 
 /* Add space at top so content doesn't hide under navbar */
 .container {
-  margin-top: 90px;
+  padding-top: 30px;
 }
 
 
