@@ -33,53 +33,46 @@ export default function LoginPage() {
   }, []);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const res = await fetch("http://localhost:3001/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    const res = await fetch("http://localhost:3001/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        alert(errorData.error || "Login failed");
-        return;
-      }
-
-      const data = await res.json();
-
-      // ✅ Store login info
-      localStorage.setItem("userEmail", data.email);
-      localStorage.setItem("userRole", data.role);
-
-      // ✅ Redirect based on role
-      // if (data.role === "admin") {
-      //   navigate("/dashboard/admin");
-      // }
-      if (data.role === "admin") {
-        navigate("/employee");
-      }
-      // else if (data.role === "employee") {
-      //   navigate("/dashboard");
-      // }
-      else if (data.role === "employee") {
-        navigate(`/timesheet`);
-      } else if (data.role === "tl") {
-        navigate("/tldashboard");
-      } else if (data.role === "hr") {
-        navigate("/hr/dashboard");
-      } else if (data.role === "ceo") {
-        navigate("/ceo-dashboard");
-      }
-    } catch (err) {
-      alert("Login request failed: " + err.message);
+    if (!res.ok) {
+      const errorData = await res.json();
+      alert(errorData.error || "Login failed");
+      setLoading(false);
+      return;
     }
-  };
-  useEffect(() => {
+
+    const data = await res.json();
+
+    // ✅ Store login info
+    localStorage.setItem("userEmail", data.email);
+    localStorage.setItem("userRole", data.role);
+
+    // ✅ SET the isLoggedIn flag for ProtectedRoute
+    localStorage.setItem("isLoggedIn", "true"); // <-- add this line
+
+    // ✅ Redirect based on role
+    if (data.role === "admin") navigate("/employee");
+    else if (data.role === "employee") navigate("/timesheet");
+    else if (data.role === "tl") navigate("/tldashboard");
+    else if (data.role === "hr") navigate("/hr/dashboard");
+    else if (data.role === "ceo") navigate("/ceo-dashboard");
+
+    setLoading(false);
+  } catch (err) {
+    alert("Login request failed: " + err.message);
+    setLoading(false);
+  }
+};
+useEffect(() => {
     const gridCanvas = gridRef.current;
     const partCanvas = particlesRef.current;
     const dpr = window.devicePixelRatio || 1;
