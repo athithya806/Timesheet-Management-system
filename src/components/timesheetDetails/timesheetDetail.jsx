@@ -369,7 +369,7 @@ const openEditPanel = (date) => {
       
     },
   General: {
-    Meeting: ["Requirement Gathering", "Project Clarification", "Demo"],
+    Meeting: ["Requirement Gathering", "Project Clarification", "Demo","others"],
   },
     
   };
