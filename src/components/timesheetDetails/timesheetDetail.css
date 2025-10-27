@@ -9,7 +9,7 @@
 
 /* Sidebar */
 .sidebar {
-  width: 270px; /* slightly wider for better alignment with your sidebar component */
+  width: 270px;
   flex-shrink: 0;
   background-color: #1f2937;
   color: #fff;
@@ -20,17 +20,17 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding: 20px 0; /* adjust padding if needed */
+  padding: 20px 0;
 }
 
 /* Main content */
 .timesheet-main {
-  flex: 1; /* take remaining space */
+  flex: 1;
   min-height: 100vh;
   background-color: #f8f9fc;
-  overflow-y: auto; /* scroll only main content */
+  overflow-y: auto;
   padding: 20px 40px;
-  box-sizing: border-box; /* ensure padding doesn't shrink content */
+  box-sizing: border-box;
 }
 
 /* Responsive Layout */
@@ -234,10 +234,12 @@
 .approval-drawer {
   display: flex;
   flex-direction: column;
-  background: #fff;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(145deg, #ffffff, #f0f4f8);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   animation: slideIn 0.3s ease-in-out;
   z-index: 1000;
+  border-left: 4px solid #f4b400;
+  border-radius: 0 8px 8px 0;
 }
 .edit-panel {
   position: fixed;
@@ -269,6 +271,10 @@
   padding: 15px;
   border-bottom: 1px solid #ddd;
 }
+.edit-header h3 {
+  font-size: 20px;
+  color: #f4b400;
+}
 .close-btn {
   background: none;
   border: none;
@@ -281,18 +287,39 @@
   padding: 15px;
   flex: 1;
   overflow-y: auto;
+  max-height: calc(100vh - 120px);
 }
 
+/* Scrollbar for edit content */
+.edit-content::-webkit-scrollbar {
+  width: 8px;
+}
+.edit-content::-webkit-scrollbar-thumb {
+  background-color: #f4b400;
+  border-radius: 4px;
+}
+.edit-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Hour blocks */
 .hour-block {
   border: 1px solid #ddd;
   padding: 10px;
   margin-bottom: 15px;
   border-radius: 5px;
-  background: #f9f9f9;
+  background: linear-gradient(to right, #e0f7fa, #ffffff);
+  border-left: 4px solid #2196f3;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hour-block:hover {
+  transform: translateX(3px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 .hour-block h4 {
   margin-bottom: 10px;
   font-size: 14px;
+  color: #1f2937;
 }
 
 .field {
@@ -302,6 +329,8 @@
   display: block;
   font-size: 13px;
   margin-bottom: 5px;
+  font-weight: 600;
+  color: #1f2937;
 }
 .field input,
 .field select {
@@ -309,7 +338,26 @@
   padding: 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
 }
+/* === Remove Blue Focus Shade from Form Inputs === */
+.field input:focus,
+.field input:focus-visible,
+.field select:focus,
+.field select:focus-visible {
+  border-color: #f4b400 !important; /* gold border */
+  outline: none !important;
+  box-shadow: none !important; /* removes blue glow */
+  background-color: #fff !important; /* removes blue background shade */
+}
+
+
+/* Colored accents for select fields */
+.field select[name="type"] { border-left: 4px solid #2196f3; }
+.field select[name="category"] { border-left: 4px solid #2196f3; }
+.field select[name="name"] { border-left: 4px solid #ff9800; }
+.field select[name="phase"] { border-left: 4px solid #9c27b0; }
+.field select[name="task"] { border-left: 4px solid #f44336; }
 
 .edit-footer,
 .drawer-footer {
@@ -321,16 +369,27 @@
 }
 .cancel-btn {
   padding: 6px 12px;
-  border: 1px solid #ccc;
-  background: #f3f3f3;
+  border: none;
+  background: #f44336;
+  color: #fff;
+  border-radius: 6px;
   cursor: pointer;
+  transition: background 0.2s ease;
+}
+.cancel-btn:hover {
+  background: #e53935;
 }
 .save-btn {
   padding: 6px 12px;
-  background: #f4b400;
+  background: #2196f3;
   border: none;
   color: #fff;
+  border-radius: 6px;
   cursor: pointer;
+  transition: background 0.2s ease;
+}
+.save-btn:hover {
+  background: #1e88e5;
 }
 
 /* === Overlay === */
@@ -344,27 +403,73 @@
   z-index: 900;
 }
 
-/* Wrapper that scrolls table/timeline content */
+/* Wrappers */
 .timesheet-content-scroll {
-  flex: 1;              /* take remaining vertical space */
-  overflow-y: auto;     /* vertical scroll if content exceeds */
-
-  padding-right: 10px;  /* optional padding to prevent scrollbar overlap */
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 10px;
 }
-
-/* Horizontal scroll wrapper for table */
 .table-wrapper {
   width: 100%;
   overflow-x: auto;
 }
-
-/* Prevent table text wrapping */
 .summary-table th,
 .summary-table td {
   white-space: nowrap;
 }
-
-/* Timeline rows scroll wrapper */
 .timeline-rows-wrapper {
-  overflow-x: auto; /* scroll horizontally if timeline exceeds container width */
+  overflow-x: auto;
 }
+
+/* =======================
+   Month & Year Selector Styling (beside tabs)
+======================= */
+.month-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 20px; /* aligns next to tabs */
+  vertical-align: middle;
+}
+
+.month-selector select {
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+/* Hover effect */
+.month-selector select:hover {
+  border-color: #f4b400;
+  box-shadow: 0 0 5px rgba(244, 180, 0, 0.25);
+}
+
+/* Focus effect */
+.month-selector select:focus {
+  outline: none;
+  border-color: #f4b400;
+  box-shadow: 0 0 6px rgba(244, 180, 0, 0.35);
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+  .month-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-left: 0;
+    margin-top: 10px;
+  }
+
+  .month-selector select {
+    width: 100%;
+  }
+}
+

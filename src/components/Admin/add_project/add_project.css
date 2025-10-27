@@ -184,3 +184,54 @@
 .dropdown li:hover {
   background: #f0f0f0;
 }
+.tabs {
+    display: flex;
+    gap: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 24px;
+    margin-left: 20px;
+}
+.top-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background-color:#1d4ed8;;
+  color: #fff;
+  z-index: 1000;
+  height: 64px;
+  box-sizing: border-box;
+}
+
+.navbar-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.navbar-title {
+  font-size: 24px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+}
+
+.add-project-wrapper {
+  padding-top: 80px; /* so content doesn't hide behind navbar */
+}
+.tabs .tab:nth-child(5) {
+  background-color: #dc2626; /* red */
+  color: #fff;
+}
+
+.tabs .tab:nth-child(5).active {
+  background-color: #b91c1c; /* darker red when active */
+}
+
+/* Optional hover effect */
+.tabs .tab:nth-child(5):hover {
+  background-color: #ef4444;
+}

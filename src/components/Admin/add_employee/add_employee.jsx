@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./add_employee.css";
+import logo from "../../../assests/logo.png";
 
 const DEPARTMENTS = [
   "Innovative Manufacturing",
@@ -15,16 +16,14 @@ const DEPARTMENTS = [
 
 const ROLES = ["admin", "employee"];
 
-const AddEmployee = () => {
-  const location = useLocation();
+const AddEmployee = ({ hideExtras = false, location: propLocation }) => {
   const navigate = useNavigate();
-
-  const [activeTab, setActiveTab] = useState("addEmployee");
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const routerLocation = useLocation();
+  const location = propLocation || routerLocation;
 
   const existingEmployee = location.state?.employeeData || null;
+  const isEditMode = Boolean(existingEmployee);
+
   const [formData, setFormData] = useState({
     empId: existingEmployee?.empId || "",
     fullName: existingEmployee?.fullName || "",
@@ -37,36 +36,34 @@ const AddEmployee = () => {
     gender: existingEmployee?.gender || "",
   });
 
+  const [employees, setEmployees] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
-  const isEditMode = Boolean(existingEmployee);
-
-  // Fetch employees for stats
-  const fetchEmployees = () => {
-    setLoading(true);
-    fetch("http://localhost:3001/api/members")
-      .then((res) => res.json())
-      .then((data) => {
-        setEmployees(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching employees:", err);
-        setError("Failed to load employee data.");
-        setLoading(false);
-      });
-  };
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("addEmployee");
 
   useEffect(() => {
-    fetchEmployees();
-  }, []);
+    if (!hideExtras) {
+      fetch("http://localhost:3001/api/members")
+        .then((res) => res.json())
+        .then((data) => {
+          setEmployees(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Error fetching employees:", err);
+          setError("Failed to load employee data.");
+          setLoading(false);
+        });
+    }
+  }, [hideExtras]);
 
   const handleTabClick = (tab) => {
     if (tab === "addEmployee") return navigate("/add_employee");
     if (tab === "addProject") return navigate("/add_project");
     if (tab === "employeeList") return navigate("/employee");
     if (tab === "projects") return navigate("/projects");
-    if (tab === "logout") return navigate("/login"); 
-    setActiveTab(tab);
+    if (tab === "logout") return navigate("/login");
   };
 
   const handleChange = (e) => {
@@ -89,10 +86,12 @@ const AddEmployee = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveImage = () => setFormData((prev) => ({ ...prev, imagePath: "" }));
+  const handleRemoveImage = () =>
+    setFormData((prev) => ({ ...prev, imagePath: "" }));
 
   const passwordIsValid = () => {
-    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+    const regex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
     return regex.test(formData.password);
   };
 
@@ -112,9 +111,10 @@ const AddEmployee = () => {
         : "http://localhost:3001/members";
 
       const method = isEditMode ? "PUT" : "POST";
-      const payload = isEditMode
-        ? { ...formData, empId: existingEmployee.empId }
-        : formData;
+    const payload = { ...formData };
+if (isEditMode) {
+  delete payload.password; // remove password so it won't be sent
+}
 
       const res = await fetch(endpoint, {
         method,
@@ -124,7 +124,15 @@ const AddEmployee = () => {
 
       if (!res.ok) throw new Error("Failed to save employee");
 
-      alert(isEditMode ? "Employee updated successfully!" : "Employee added successfully!");
+      alert(
+        isEditMode
+          ? "Employee updated successfully!"
+          : "Employee added successfully!"
+      );
+
+      // Navigate after editing
+      if (isEditMode && hideExtras) return navigate("/timesheet");
+
       navigate("/employee");
     } catch (error) {
       alert("Failed to save employee: " + error.message);
@@ -132,79 +140,105 @@ const AddEmployee = () => {
   };
 
   return (
+    
     <div className="add-employee-page">
-
+      {/* ===== Top Navbar ===== */}
+    <header className="top-navbar">
+      <img src={logo} alt="Company Logo" className="navbar-logo" />
+      <h1 className="navbar-title">Timesheet</h1>
+    </header>
       {/* ===== Stats Cards ===== */}
-      <div className="stats-bar">
-        <div className="stat-box">
-          <div className="icon total"></div>
-          <div>
-            <h3>{employees.length}</h3>
-            <p>Total Employees</p>
+      {!hideExtras && (
+        <div className="stats-bar">
+          <div className="stat-box">
+            <div className="icon total"></div>
+            <div>
+              <h3>{employees.length}</h3>
+              <p>Total Employees</p>
+            </div>
+          </div>
+          <div className="stat-box">
+            <div className="icon admin"></div>
+            <div>
+              <h3>
+                {employees.filter(
+                  (e) => e.role?.toLowerCase() === "admin"
+                ).length}
+              </h3>
+              <p>Admins</p>
+            </div>
+          </div>
+          <div className="stat-box">
+            <div className="icon employee"></div>
+            <div>
+              <h3>
+                {employees.filter(
+                  (e) => e.role?.toLowerCase() !== "admin"
+                ).length}
+              </h3>
+              <p>Employees</p>
+            </div>
           </div>
         </div>
-        <div className="stat-box">
-          <div className="icon admin"></div>
-          <div>
-            <h3>{employees.filter((e) => e.role?.toLowerCase() === "admin").length}</h3>
-            <p>Admins</p>
-          </div>
-        </div>
-        <div className="stat-box">
-          <div className="icon employee"></div>
-          <div>
-            <h3>{employees.filter((e) => e.role?.toLowerCase() !== "admin").length}</h3>
-            <p>Employees</p>
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* ===== Tabs ===== */}
-      <div className="tabs-container">
-        <div className="tabs">
-          <button
-            className={`tab ${activeTab === "addEmployee" ? "active" : ""}`}
-            onClick={() => handleTabClick("addEmployee")}
-          >
-            Add Employee
-          </button>
-          <button
-            className={`tab ${activeTab === "addProject" ? "active" : ""}`}
-            onClick={() => handleTabClick("addProject")}
-          >
-            Add Project
-          </button>
-          <button
-            className={`tab ${activeTab === "employeeList" ? "active" : ""}`}
-            onClick={() => handleTabClick("employeeList")}
-          >
-            Employee List
-          </button>
-          <button
-            className={`tab ${activeTab === "projects" ? "active" : ""}`}
-            onClick={() => handleTabClick("projects")}
-          >
-            Projects
-          </button>
-          <button
-            className={`tab ${activeTab === "logout" ? "active" : ""}`} 
-            onClick={() => handleTabClick("logout")}
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-      {/* ===== Form Section ===== */}
-      <div className="form-container">
+      {!hideExtras && (
         <div className="form-tabs">
-          <div className="form-tab active">
-            {isEditMode ? "Edit Employee" : "Add Employee"}
+          <div className="tab-group">
+            <div
+              className={`form-tab ${activeTab === "addEmployee" ? "active" : ""}`}
+              onClick={() => handleTabClick("addEmployee")}
+            >
+              Add Employee
+            </div>
+            <div
+              className={`form-tab ${activeTab === "addProject" ? "active" : ""}`}
+              onClick={() => handleTabClick("addProject")}
+            >
+              Add Project
+            </div>
+            <div
+              className={`form-tab ${activeTab === "employeeList" ? "active" : ""}`}
+              onClick={() => handleTabClick("employeeList")}
+            >
+              Employee List
+            </div>
+            <div
+              className={`form-tab ${activeTab === "projects" ? "active" : ""}`}
+              onClick={() => handleTabClick("projects")}
+            >
+              Projects
+            </div>
+          </div>
+
+          <div className="tab-group">
+            <div
+              className={`form-tab ${activeTab === "logout" ? "active" : ""}`}
+              onClick={() => handleTabClick("logout")}
+            >
+              Logout
+            </div>
           </div>
         </div>
+      )}
 
+      {/* ===== Form Section ===== */}
+      <div className="form-container">
         <form onSubmit={handleSubmit}>
-          {/* ===== Your existing form fields ===== */}
-
+          {/* Full Name & Email */}
+          <div className="form-group">
+              <label className="form-label">Emp ID</label>
+              <input
+                className="form-input"
+                type="text"
+                name="empId"
+                placeholder="empId"
+                value={formData.empId}
+                onChange={handleChange}
+                required
+              />
+            </div>
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Full Name</label>
@@ -232,6 +266,7 @@ const AddEmployee = () => {
             </div>
           </div>
 
+          {/* Phone & Department */}
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Contact Number</label>
@@ -264,6 +299,7 @@ const AddEmployee = () => {
             </div>
           </div>
 
+          {/* Role & Password */}
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Role</label>
@@ -285,16 +321,17 @@ const AddEmployee = () => {
             <div className="form-group">
               <label className="form-label">Password</label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  className="form-input"
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Enter password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  style={{ flex: 1 }}
-                />
+             <input
+  className="form-input"
+  type={showPassword ? "text" : "password"}
+  name="password"
+  placeholder={isEditMode ? "Password cannot be changed" : "Enter password"}
+  value={formData.password}
+  onChange={handleChange}
+  required={!isEditMode} // required only for new employee
+  disabled={isEditMode} // disable on edit
+  style={{ flex: 1 }}
+/>
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
@@ -317,7 +354,8 @@ const AddEmployee = () => {
             </div>
           </div>
 
-          <div className="form-group">
+          {/* Upload Image */}
+          {/* <div className="form-group">
             <label className="form-label">Upload Image</label>
             <input
               className="form-input"
@@ -361,9 +399,10 @@ const AddEmployee = () => {
                 </button>
               </div>
             )}
-          </div>
+          </div> */}
 
-          <div className="form-group">
+          {/* Gender */}
+          {/* <div className="form-group">
             <label className="form-label">Gender</label>
             <div className="gender-options">
               <button
@@ -400,7 +439,7 @@ const AddEmployee = () => {
                 Other
               </button>
             </div>
-          </div>
+          </div> */}
 
           <div className="form-actions">
             <button className="btn btn-primary" type="submit">

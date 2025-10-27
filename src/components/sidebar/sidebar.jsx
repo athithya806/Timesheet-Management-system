@@ -1,10 +1,22 @@
-import React, { useState } from "react";
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./sidebar.css";
 import { FaUserCircle, FaClock, FaSignOutAlt } from "react-icons/fa";
 
 const Sidebar = () => {
-  const [activeItem, setActiveItem] = useState("Profile");
+  const navigate = useNavigate();
+  const location = useLocation();
 
+  // Map paths to sidebar item names
+  const pathsToMenu = {
+    "/profile": "Profile",
+    "/timesheet": "Timesheet",
+  };
+
+  // Determine which item is active based on the current URL
+  const activeItem = pathsToMenu[location.pathname] || "";
+
+  // Mouse glow effect
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -13,20 +25,23 @@ const Sidebar = () => {
     e.currentTarget.style.setProperty("--y", `${y}px`);
   };
 
+  // Handle navigation
+  const handleClick = (path) => {
+    navigate(path);
+  };
+
   return (
     <div className="sidebar">
-      {/* flowing animated background */}
       <div className="flow-bg"></div>
 
       <div className="sidebar-header">
         <h2 className="logo">TANSAM</h2>
       </div>
 
-      {/* top menu */}
       <ul className="menu-list top-menu">
         <li
           className={`menu-item ${activeItem === "Profile" ? "active" : ""}`}
-          onClick={() => setActiveItem("Profile")}
+          onClick={() => handleClick("/profile")}
           onMouseMove={handleMouseMove}
         >
           <FaUserCircle /> Profile
@@ -35,7 +50,7 @@ const Sidebar = () => {
 
         <li
           className={`menu-item ${activeItem === "Timesheet" ? "active" : ""}`}
-          onClick={() => setActiveItem("Timesheet")}
+          onClick={() => handleClick("/timesheet")}
           onMouseMove={handleMouseMove}
         >
           <FaClock /> Timesheet
@@ -43,12 +58,11 @@ const Sidebar = () => {
         </li>
       </ul>
 
-      {/* only bottom menu */}
       <div className="bottom-section">
         <ul className="menu-list bottom-menu">
           <li
             className={`menu-item logout ${activeItem === "Logout" ? "active" : ""}`}
-            onClick={() => setActiveItem("Logout")}
+            onClick={() => handleClick("/logout")}
             onMouseMove={handleMouseMove}
           >
             <FaSignOutAlt /> Logout
@@ -56,17 +70,7 @@ const Sidebar = () => {
           </li>
         </ul>
 
-        <div className="sidebar-footer">
-          <img
-            src="https://via.placeholder.com/40"
-            alt="profile"
-            className="profile-pic"
-          />
-          <div className="user-info">
-            <p className="name">Athithya</p>
-            <p className="email">athithya@tansam.org</p>
-          </div>
-        </div>
+        <div className="sidebar-footer"></div>
       </div>
     </div>
   );
