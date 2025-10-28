@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "./employeeDetail.css";
 import logo from "../../../assests/logo.png";
@@ -30,9 +29,10 @@ const EmployeeDetail = () => {
   // ===== Autocomplete Logic =====
   const filteredSuggestions =
     selectedEmployee.trim() === ""
-      ? employees // show all by default
+      ? employees.filter(emp => emp.role?.toLowerCase() !== "admin")
       : employees.filter(
           (emp) =>
+            emp.role?.toLowerCase() !== "admin" &&
             emp.fullName &&
             emp.fullName.toLowerCase().includes(selectedEmployee.toLowerCase())
         );
@@ -72,77 +72,111 @@ const EmployeeDetail = () => {
     fetchTimesheetData();
   }, []);
 
-  // ===== CSV Download (All Employees) =====
-  const handleDownloadCSV = async () => {
+  // ===== WORKING DAYS: Any Year, Leap Year, Sunday, 2nd Saturday =====
+  const getSecondSaturday = (year, month) => {
+    let saturdayCount = 0;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      if (date.getDay() === 6) {
+        saturdayCount++;
+        if (saturdayCount === 2) return day;
+      }
+    }
+    return null;
+  };
+
+  const getWorkingDays = (year) => {
+    let workingDays = 0;
+
+    for (let month = 0; month < 12; month++) {
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const secondSaturday = getSecondSaturday(year, month);
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const dayOfWeek = date.getDay();
+
+        if (dayOfWeek === 0) continue; // Sunday
+        if (day === secondSaturday) continue; // 2nd Saturday
+
+        workingDays++;
+      }
+    }
+
+    return workingDays;
+  };
+
+  // ===== CSV: All Employees by Year =====
+  const handleDownloadCSV = () => {
     if (!selectedPeriod) {
       alert("Please select a year first.");
       return;
     }
 
-    try {
-      const filtered = timesheetData.filter((item) => {
-        const year = new Date(item.date).getFullYear();
-        return year === parseInt(selectedPeriod);
-      });
+    const year = parseInt(selectedPeriod);
+    const workingDays = getWorkingDays(year);
 
-      const workingDays = getWorkingDays(parseInt(selectedPeriod));
+    if (workingDays === 0) {
+      alert("No working days in selected year.");
+      return;
+    }
 
-      const rows = employees
-        .filter((emp) => emp.role.toLowerCase() !== "admin")
-        .map((emp, index) => {
-          const userTimes = filtered.filter((t) => t.memberId === emp.id);
-          let totalFilledHours = 0;
+    const filtered = timesheetData.filter((item) => {
+      const itemYear = new Date(item.date).getFullYear();
+      return itemYear === year;
+    });
 
-          userTimes.forEach((t) => {
+    const rows = employees
+      .filter((emp) => emp.role?.toLowerCase() !== "admin")
+      .map((emp, index) => {
+        const userTimes = filtered.filter((t) => t.memberId === emp.id);
+        let totalFilledHours = 0;
+
+        userTimes.forEach((t) => {
+          try {
             const blocks = JSON.parse(t.hourBlocks || "[]");
             blocks.forEach((block) => {
               const allFilled =
-                block.projectType &&
-                block.projectCategory &&
-                block.projectName &&
-                block.projectPhase &&
-                block.projectTask;
+                block.projectType?.trim() &&
+                block.projectCategory?.trim() &&
+                block.projectName?.trim() &&
+                block.projectPhase?.trim() &&
+                block.projectTask?.trim();
               if (allFilled) totalFilledHours += 1;
             });
-          });
-
-          const totalWorkingHours = totalFilledHours;
-          const averageWorkingHours = (
-            (totalFilledHours / workingDays) *
-            8
-          ).toFixed(2);
-
-          return {
-            "S.No": index + 1,
-            "Employee Name": emp.fullName,
-            "Emp ID": emp.empId,
-            "Email ID": emp.email,
-            "Average Working Hours": averageWorkingHours,
-            "Total Working Hours": totalWorkingHours,
-          };
+          } catch (e) {
+            console.warn("Invalid hourBlocks JSON:", t.id, e);
+          }
         });
 
-      const headers = Object.keys(rows[0]).join(",");
-      const csvContent =
-        headers +
-        "\n" +
-        rows.map((r) => Object.values(r).join(",")).join("\n");
+        const averageWorkingHours = (totalFilledHours / workingDays).toFixed(2);
 
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `Timesheet_Report_${selectedPeriod}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Error downloading CSV:", err);
-      alert("Error generating CSV file.");
-    }
+        return {
+          "S.No": index + 1,
+          "Employee Name": emp.fullName,
+          "Emp ID": emp.empId,
+          "Email ID": emp.email,
+          "Average Working Hours": averageWorkingHours,
+          "Total Working Hours": totalFilledHours,
+        };
+      });
+
+    const headers = Object.keys(rows[0]).join(",");
+    const csvContent =
+      headers + "\n" + rows.map((r) => Object.values(r).join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Timesheet_Report_${year}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
-  // ===== CSV Download (Single Employee) =====
+  // ===== CSV: Single Employee by Date Range =====
   const handleDownloadCSVSingle = () => {
     const { from, to } = dateRange;
 
@@ -174,71 +208,46 @@ const EmployeeDetail = () => {
     }
 
     const dailyHours = {};
+    let total = 0;
+
     filtered.forEach((entry) => {
       const dateStr = new Date(entry.date).toISOString().split("T")[0];
-      const blocks = JSON.parse(entry.hourBlocks || "[]");
-      const validHours = blocks.filter(
-        (b) =>
-          b.projectType &&
-          b.projectCategory &&
-          b.projectName &&
-          b.projectPhase &&
-          b.projectTask
-      ).length;
+      let validHours = 0;
+
+      try {
+        const blocks = JSON.parse(entry.hourBlocks || "[]");
+        validHours = blocks.filter(
+          (b) =>
+            b.projectType?.trim() &&
+            b.projectCategory?.trim() &&
+            b.projectName?.trim() &&
+            b.projectPhase?.trim() &&
+            b.projectTask?.trim()
+        ).length;
+      } catch (e) {
+        console.warn("Invalid JSON in hourBlocks:", entry.id);
+      }
+
       dailyHours[dateStr] = (dailyHours[dateStr] || 0) + validHours;
+      total += validHours;
     });
 
     let csv = "Date,Total Working Hours\n";
-    let total = 0;
-
     Object.entries(dailyHours).forEach(([date, hrs]) => {
       csv += `${date},${hrs}\n`;
-      total += hrs;
     });
-
     csv += `Total,${total} hrs\n`;
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute(
-      "download",
-      `${emp.fullName}_Timesheet_${from}_to_${to}.csv`
-    );
-    document.body.appendChild(link);
+    link.download = `${emp.fullName}_Timesheet_${from}_to_${to}.csv`;
     link.click();
-    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  // ===== Working Days Logic =====
-  const getWorkingDays = (year) => {
-    const workingDays = [];
-    for (let month = 0; month < 12; month++) {
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        const dayOfWeek = date.getDay();
-        const secondSaturday = getSecondSaturday(year, month);
-        if (dayOfWeek !== 0 && day !== secondSaturday) {
-          workingDays.push(date);
-        }
-      }
-    }
-    return workingDays.length;
-  };
-
-  const getSecondSaturday = (year, month) => {
-    let count = 0;
-    for (let day = 1; day <= 31; day++) {
-      const date = new Date(year, month, day);
-      if (date.getDay() === 6) count++;
-      if (count === 2) return day;
-    }
-    return null;
-  };
-
-  // ===== Filter Employees =====
+  // ===== Filter Employees for Table =====
   const filteredEmployees = employees.filter((emp) =>
     emp.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -301,9 +310,7 @@ const EmployeeDetail = () => {
               Add Project
             </button>
             <button
-              className={`tab ${
-                activeTab === "employeeList" ? "active" : ""
-              }`}
+              className={`tab ${activeTab === "employeeList" ? "active" : ""}`}
               onClick={() => handleTabClick("employeeList")}
             >
               Employee List
@@ -321,203 +328,221 @@ const EmployeeDetail = () => {
               Logout
             </button>
           </div>
-{/* ===== Search & Filter Bar ===== */}
-<div className="search-bar d-flex align-items-center flex-nowrap gap-2" style={{ justifyContent: "flex-start" }}>
-  {/* 1. Main Search Input */}
-  <div className="search">
-    <Search className="search-icon" size={18} />
-    <input
-      type="text"
-      placeholder="Search employee..."
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-      style={{ maxWidth: "250px" }}
-    />
-  </div>
 
-  {/* 2. Employee Search Input (All) */}
-  <div style={{ position: "relative", display: "flex", alignItems: "center", marginLeft: "16px" }}>
-    <input
-      id="employeeSearch"
-      type="text"
-      placeholder="Type employee name..."
-      value={selectedEmployee}
-      onChange={(e) => setSelectedEmployee(e.target.value)}
-      onFocus={() => setShowSuggestions(true)}
-      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-      style={{
-        padding: "6px 28px 6px 10px",
-        borderRadius: "6px",
-        border: "1px solid #ccc",
-        outline: "none",
-        width: "90px",
-        marginRight: "20px",
-        height: "20px", // Match other input heights
-      }}
-    />
+          {/* ===== Search & Filter Bar ===== */}
+          <div className="search-bar d-flex align-items-center flex-nowrap gap-2" style={{ justifyContent: "flex-start" }}>
+            {/* Main Search */}
+            <div style={{ position: "relative" }}>
+              {/* Search Icon (SVG) */}
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  position: "absolute",
+                  left: "10px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#888",
+                  pointerEvents: "none",
+                }}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search employee..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  paddingLeft: "36px",
+                  height: "36px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  outline: "none",
+                  maxWidth: "250px",
+                }}
+              />
+            </div>
 
-    {/* Reset Icon */}
-    {selectedEmployee !== "All" && (
-      <button
-        type="button"
-        onClick={() => setSelectedEmployee("All")}
-        style={{
-          position: "absolute",
-          right: "6px",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          fontSize: "16px",
-          color: "#888",
-        }}
-        title="Reset to All"
-      >
-        <X size={16} />
-      </button>
-    )}
+            {/* Employee Autocomplete */}
+            <div style={{ position: "relative", display: "flex", alignItems: "center", marginLeft: "16px" }}>
+              <input
+                id="employeeSearch"
+                type="text"
+                placeholder="Type employee name..."
+                value={selectedEmployee}
+                onChange={(e) => setSelectedEmployee(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                style={{
+                  padding: "6px 28px 6px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid #ccc",
+                  outline: "none",
+                  width: "140px",
+                  height: "36px",
+                  fontSize: "14px",
+                }}
+              />
+              {selectedEmployee !== "All" && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedEmployee("All")}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                  title="Reset to All"
+                >
+                  {/* Close Icon (SVG) */}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ color: "#888" }}
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
+              )}
+              {showSuggestions && (
+                <ul
+                  className="list-group position-absolute bg-white shadow-sm"
+                  style={{
+                    top: "40px",
+                    left: 0,
+                    width: "100%",
+                    zIndex: 1000,
+                    borderRadius: "6px",
+                    maxHeight: "150px",
+                    overflowY: "auto",
+                    border: "1px solid #ccc",
+                  }}
+                >
+                  {filteredSuggestions.length > 0 ? (
+                    filteredSuggestions.map((emp) => (
+                      <li
+                        key={emp.id}
+                        className="list-group-item list-group-item-action"
+                        onMouseDown={() => {
+                          setSelectedEmployee(emp.fullName);
+                          setShowSuggestions(false);
+                        }}
+                        style={{ cursor: "pointer", padding: "8px 10px", fontSize: "14px" }}
+                      >
+                        {emp.fullName}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="list-group-item text-muted" style={{ padding: "8px 10px", fontSize: "14px" }}>
+                      No matches found
+                    </li>
+                  )}
+                </ul>
+              )}
+            </div>
 
-    {/* Dropdown suggestions */}
-    {showSuggestions && (
-      <ul
-        className="list-group position-absolute bg-white shadow-sm"
-        style={{
-          top: "40px",
-          left: 0,
-          width: "90px",
-          zIndex: 1000,
-          borderRadius: "6px",
-          maxHeight: "150px",
-          overflowY: "auto",
-          border: "1px solid #ccc",
-        }}
-      >
-        {filteredSuggestions.length > 0 ? (
-          filteredSuggestions.map((emp) => (
-            <li
-              key={emp.id}
-              className="list-group-item list-group-item-action"
-              onMouseDown={() => {
-                setSelectedEmployee(emp.fullName);
-                setShowSuggestions(false);
-              }}
-              style={{ cursor: "pointer", padding: "6px 10px" }}
-            >
-              {emp.fullName}
-            </li>
-          ))
-        ) : (
-          <li className="list-group-item text-muted" style={{ padding: "6px 10px" }}>
-            No matches found
-          </li>
-        )}
-      </ul>
-    )}
-  </div>
+            {/* Period / Date Range */}
+            {selectedEmployee === "All" ? (
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "8px",
+                height: "36px", 
+                padding: "0 8px",
+                border: "1px solid #ccc",
+                borderRadius: "6px",
+                backgroundColor: "#fff"
+              }}>
+                <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151", whiteSpace: "nowrap" }}>
+                  Period:
+                </span>
+                <select
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                  style={{ 
+                    border: "none", 
+                    outline: "none", 
+                    background: "transparent",
+                    width: "90px",
+                    fontSize: "14px",
+                    height: "100%"
+                  }}
+                >
+                  <option value="">Select Year</option>
+                  {Array.from({ length: 41 }, (_, i) => 2000 + i).map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "8px",
+                height: "36px", 
+                padding: "0 8px",
+                border: "1px solid #ccc",
+                borderRadius: "6px",
+                backgroundColor: "#fff"
+              }}>
+                <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}>From:</span>
+                <input
+                  type="date"
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+                  style={{ border: "none", outline: "none", width: "140px", fontSize: "14px" }}
+                />
+                <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}>To:</span>
+                <input
+                  type="date"
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+                  style={{ border: "none", outline: "none", width: "140px", fontSize: "14px" }}
+                />
+              </div>
+            )}
 
-  {/* 3. Period Field - PERFECTLY ALIGNED */}
- {selectedEmployee === "All" ? (
-  <div style={{ 
-    display: "flex", 
-    alignItems: "center", 
-    gap: "8px",
-    height: "36px", 
-    padding: "0 8px",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    backgroundColor: "#fff"
-  }}>
-    <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151", whiteSpace: "nowrap" }}>
-      Period:
-    </span>
-    <select
-      id="periodSelect"
-      value={selectedPeriod}
-      onChange={(e) => setSelectedPeriod(e.target.value)}
-      style={{ 
-        border: "none", 
-        outline: "none", 
-        background: "transparent",
-        width: "90px",
-        fontSize: "14px",
-        height: "100%"
-      }}
-    >
-      <option value="">Select Year</option>
-      {Array.from({ length: 41 }, (_, i) => 2000 + i).map(
-        (year) => (
-          <option key={year} value={year}>
-            {year}
-          </option>
-        )
-      )}
-    </select>
-  </div>
-) : (
-  <div style={{ 
-    display: "flex", 
-    alignItems: "center", 
-    gap: "8px",
-    height: "36px", 
-    padding: "0 8px",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    backgroundColor: "#fff"
-  }}>
-    <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151", whiteSpace: "nowrap" }}>
-      From:
-    </span>
-    <input
-      type="date"
-      value={dateRange.from} // Expect YYYY-MM-DD format (e.g., "2025-09-30")
-      onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
-      style={{ 
-        border: "none", 
-        outline: "none", 
-        background: "transparent",
-        width: "90px",
-        height: "100%",
-        fontSize: "14px"
-      }}
-    />
-    <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151", whiteSpace: "nowrap" }}>
-      To:
-    </span>
-    <input
-      type="date"
-      value={dateRange.to} // Expect YYYY-MM-DD format (e.g., "2025-09-30")
-      onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
-      style={{ 
-        border: "none", 
-        outline: "none", 
-        background: "transparent",
-        width: "90px",
-        height: "100%",
-        fontSize: "14px"
-      }}
-    />
-  </div>
-)}
-  {/* 4. Download Button */}
-  {selectedEmployee === "All" ? (
-    <button
-      className="btn btn-primary"
-      onClick={handleDownloadCSV}
-      style={{ height: "36px", padding: "0 16px" }}
-    >
-      ⬇️ Download CSV
-    </button>
-  ) : (
-    <button
-      className="btn btn-success"
-      onClick={handleDownloadCSVSingle}
-      style={{ height: "36px", padding: "0 16px" }}
-    >
-      ⬇️ Download CSV
-    </button>
-  )}
-</div>
+            {/* Download Button */}
+            {selectedEmployee === "All" ? (
+              <button
+                className="btn btn-primary"
+                onClick={handleDownloadCSV}
+                style={{ height: "36px", padding: "0 16px" }}
+              >
+                Download CSV
+              </button>
+            ) : (
+              <button
+                className="btn btn-success"
+                onClick={handleDownloadCSVSingle}
+                style={{ height: "36px", padding: "0 16px" }}
+              >
+                Download CSV
+              </button>
+            )}
+          </div>
 
-          {/* ===== Existing Table ===== */}
+          {/* ===== Employee Table ===== */}
           {activeTab === "employeeList" && (
             <>
               {loading && <p>Loading employees...</p>}
@@ -553,12 +578,12 @@ const EmployeeDetail = () => {
                                   e.target.onerror = null;
                                   e.target.src =
                                     "https://ui-avatars.com/api/?name=" +
-                                    emp.fullName;
+                                    encodeURIComponent(emp.fullName);
                                 }}
                               />
                             ) : (
                               <div className="profile-placeholder">
-                                {emp.fullName?.charAt(0)}
+                                {emp.fullName?.charAt(0).toUpperCase()}
                               </div>
                             )}
                           </td>
@@ -569,9 +594,7 @@ const EmployeeDetail = () => {
                           <td>
                             <span
                               className={`role-badge ${
-                                emp.role?.toLowerCase() === "admin"
-                                  ? "admin"
-                                  : "employee"
+                                emp.role?.toLowerCase() === "admin" ? "admin" : "employee"
                               }`}
                             >
                               {emp.role || "Employee"}
@@ -586,30 +609,23 @@ const EmployeeDetail = () => {
                                 })
                               }
                             >
-                              ✏️
+                              Edit
                             </button>
                             <button
                               className="btn small delete"
                               onClick={() => {
-                                if (
-                                  window.confirm(`Delete ${emp.fullName}?`)
-                                ) {
-                                  fetch(
-                                    `http://localhost:3001/api/members/${emp.id}`,
-                                    { method: "DELETE" }
-                                  )
+                                if (window.confirm(`Delete ${emp.fullName}?`)) {
+                                  fetch(`http://localhost:3001/api/members/${emp.id}`, {
+                                    method: "DELETE",
+                                  })
                                     .then((res) => res.json())
                                     .then(() =>
-                                      setEmployees(
-                                        employees.filter(
-                                          (e) => e.id !== emp.id
-                                        )
-                                      )
+                                      setEmployees(employees.filter((e) => e.id !== emp.id))
                                     );
                                 }
                               }}
                             >
-                              🗑️
+                              Delete
                             </button>
                           </td>
                         </tr>
