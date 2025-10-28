@@ -12,6 +12,8 @@ const DEPARTMENTS = [
   "Research Centre For Asset Performance",
   "Product Innovation Center",
   "Predictive Engineering",
+  "Nan Mudhalvan",
+  "Admin"
 ];
 
 const ROLES = ["admin", "employee"];

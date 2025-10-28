@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./employeeDetail.css";
 import logo from "../../../assests/logo.png";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 const EmployeeDetail = () => {
   const navigate = useNavigate();
@@ -12,11 +14,15 @@ const EmployeeDetail = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
-  const [selectedEmployee, setSelectedEmployee] = useState("All");
+  const [selectedEmployee, setSelectedEmployee] = useState("All"); // internal: full name
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(""); // internal: empId
+  const [inputValue, setInputValue] = useState("All"); // displayed in input
   const [timesheetData, setTimesheetData] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // ===== Navigation =====
+  /* --------------------------------------------------------------
+     Navigation
+  -------------------------------------------------------------- */
   const handleTabClick = (tab) => {
     if (tab === "addEmployee") return navigate("/add_employee");
     if (tab === "addProject") return navigate("/add_project");
@@ -26,18 +32,9 @@ const EmployeeDetail = () => {
     setActiveTab(tab);
   };
 
-  // ===== Autocomplete Logic =====
-  const filteredSuggestions =
-    selectedEmployee.trim() === ""
-      ? employees.filter(emp => emp.role?.toLowerCase() !== "admin")
-      : employees.filter(
-          (emp) =>
-            emp.role?.toLowerCase() !== "admin" &&
-            emp.fullName &&
-            emp.fullName.toLowerCase().includes(selectedEmployee.toLowerCase())
-        );
-
-  // ===== Fetch Employees =====
+  /* --------------------------------------------------------------
+     Fetch Employees & Timesheet
+  -------------------------------------------------------------- */
   const fetchEmployees = () => {
     setLoading(true);
     fetch("http://localhost:3001/api/members")
@@ -56,7 +53,6 @@ const EmployeeDetail = () => {
       });
   };
 
-  // ===== Fetch Timesheet =====
   const fetchTimesheetData = async () => {
     try {
       const res = await fetch("http://localhost:3001/getHourDetailsByMonthForCeo");
@@ -72,7 +68,9 @@ const EmployeeDetail = () => {
     fetchTimesheetData();
   }, []);
 
-  // ===== WORKING DAYS: Any Year, Leap Year, Sunday, 2nd Saturday =====
+  /* --------------------------------------------------------------
+     Working Days Helper
+  -------------------------------------------------------------- */
   const getSecondSaturday = (year, month) => {
     let saturdayCount = 0;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -89,7 +87,6 @@ const EmployeeDetail = () => {
 
   const getWorkingDays = (year) => {
     let workingDays = 0;
-
     for (let month = 0; month < 12; month++) {
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const secondSaturday = getSecondSaturday(year, month);
@@ -97,160 +94,354 @@ const EmployeeDetail = () => {
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const dayOfWeek = date.getDay();
-
         if (dayOfWeek === 0) continue; // Sunday
         if (day === secondSaturday) continue; // 2nd Saturday
-
         workingDays++;
       }
     }
-
     return workingDays;
   };
 
-  // ===== CSV: All Employees by Year =====
-  const handleDownloadCSV = () => {
-    if (!selectedPeriod) {
-      alert("Please select a year first.");
-      return;
-    }
+  /* --------------------------------------------------------------
+     CSV – All Employees
+  -------------------------------------------------------------- */
+  /* --------------------------------------------------------------
+   EXCEL – All Employees
+-------------------------------------------------------------- */
+const handleDownloadExcelAll = async () => {
+  if (!selectedPeriod) {
+    alert("Please select a year first.");
+    return;
+  }
 
-    const year = parseInt(selectedPeriod);
-    const workingDays = getWorkingDays(year);
+  const year = parseInt(selectedPeriod);
+  const workingDays = getWorkingDays(year);
+  if (workingDays === 0) {
+    alert("No working days in selected year.");
+    return;
+  }
 
-    if (workingDays === 0) {
-      alert("No working days in selected year.");
-      return;
-    }
+  const filtered = timesheetData.filter(
+    (item) => new Date(item.date).getFullYear() === year
+  );
 
-    const filtered = timesheetData.filter((item) => {
-      const itemYear = new Date(item.date).getFullYear();
-      return itemYear === year;
-    });
+  const rows = employees
+    .filter((emp) => emp.role?.toLowerCase() !== "admin")
+    .map((emp, index) => {
+      const userTimes = filtered.filter((t) => t.memberId === emp.id);
+      let totalFilledHours = 0;
 
-    const rows = employees
-      .filter((emp) => emp.role?.toLowerCase() !== "admin")
-      .map((emp, index) => {
-        const userTimes = filtered.filter((t) => t.memberId === emp.id);
-        let totalFilledHours = 0;
-
-        userTimes.forEach((t) => {
-          try {
-            const blocks = JSON.parse(t.hourBlocks || "[]");
-            blocks.forEach((block) => {
-              const allFilled =
-                block.projectType?.trim() &&
-                block.projectCategory?.trim() &&
-                block.projectName?.trim() &&
-                block.projectPhase?.trim() &&
-                block.projectTask?.trim();
-              if (allFilled) totalFilledHours += 1;
-            });
-          } catch (e) {
-            console.warn("Invalid hourBlocks JSON:", t.id, e);
-          }
-        });
-
-        const averageWorkingHours = (totalFilledHours / workingDays).toFixed(2);
-
-        return {
-          "S.No": index + 1,
-          "Employee Name": emp.fullName,
-          "Emp ID": emp.empId,
-          "Email ID": emp.email,
-          "Average Working Hours": averageWorkingHours,
-          "Total Working Hours": totalFilledHours,
-        };
+      userTimes.forEach((t) => {
+        try {
+          const blocks = JSON.parse(t.hourBlocks || "[]");
+          blocks.forEach((block) => {
+            const allFilled =
+              block.projectType?.trim() &&
+              block.projectCategory?.trim() &&
+              block.projectName?.trim() &&
+              block.projectPhase?.trim() &&
+              block.projectTask?.trim();
+            if (allFilled) totalFilledHours += 1;
+          });
+        } catch (e) {
+          console.warn("Invalid hourBlocks JSON:", t.id, e);
+        }
       });
 
-    const headers = Object.keys(rows[0]).join(",");
-    const csvContent =
-      headers + "\n" + rows.map((r) => Object.values(r).join(",")).join("\n");
+      const averageWorkingHours = (totalFilledHours / workingDays).toFixed(2);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Timesheet_Report_${year}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+      return {
+        sno: index + 1,
+        name: emp.fullName,
+        empId: emp.empId,
+        email: emp.email,
+        avg: averageWorkingHours,
+        total: totalFilledHours,
+      };
+    });
+
+  // Create Excel workbook
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Timesheet Report");
+
+  // Add Logo (top-left)
+  const logoImage = await fetch(logo)
+    .then((res) => res.blob())
+    .then((blob) => {
+      const reader = new FileReader();
+      return new Promise((resolve) => {
+        reader.onload = () => resolve(reader.result);
+        reader.readAsArrayBuffer(blob);
+      });
+    });
+
+  const imageId = workbook.addImage({
+    buffer: logoImage,
+    extension: "png",
+  });
+  worksheet.addImage(imageId, {
+    tl: { col: 0.2, row: 0.2 },
+    ext: { width: 120, height: 60 },
+  });
+
+  // Add heading text
+  worksheet.mergeCells("C2", "G2");
+  const headingCell = worksheet.getCell("C2");
+  headingCell.value = "TANSAM TIMESHEET REPORT";
+  headingCell.font = { size: 16, bold: true, color: { argb: "004085" } };
+  headingCell.alignment = { vertical: "middle", horizontal: "center" };
+
+  // Add empty row then table headers
+  worksheet.addRow([]);
+  worksheet.addRow([
+    "S.No",
+    "Employee Name",
+    "Emp ID",
+    "Email ID",
+    "Average Working Hours",
+    "Total Working Hours",
+  ]);
+
+  // Style header
+  const headerRow = worksheet.lastRow;
+  headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
+  headerRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "4472C4" },
   };
+  headerRow.alignment = { horizontal: "center" };
 
-  // ===== CSV: Single Employee by Date Range =====
-  const handleDownloadCSVSingle = () => {
-    const { from, to } = dateRange;
+  // Add data rows
+  rows.forEach((r) => {
+    worksheet.addRow([
+      r.sno,
+      r.name,
+      r.empId,
+      r.email,
+      r.avg,
+      r.total,
+    ]);
+  });
 
-    if (!from || !to) {
-      alert("Please select a valid date range.");
-      return;
-    }
+  worksheet.columns = [
+    { width: 8 },
+    { width: 25 },
+    { width: 15 },
+    { width: 30 },
+    { width: 25 },
+    { width: 20 },
+  ];
 
-    const emp = employees.find(
-      (e) => e.fullName === selectedEmployee && e.role !== "admin"
+  // Add borders for neatness
+  worksheet.eachRow({ includeEmpty: false }, (row) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: "thin", color: { argb: "CCCCCC" } },
+        left: { style: "thin", color: { argb: "CCCCCC" } },
+        bottom: { style: "thin", color: { argb: "CCCCCC" } },
+        right: { style: "thin", color: { argb: "CCCCCC" } },
+      };
+    });
+  });
+
+  // Protect sheet (non-editable)
+  await worksheet.protect("TansamReport2025", {
+    selectLockedCells: true,
+    selectUnlockedCells: false,
+    formatCells: false,
+    insertRows: false,
+    deleteRows: false,
+    sort: false,
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), `Timesheet_Report_${year}.xlsx`);
+};
+
+/* --------------------------------------------------------------
+   EXCEL – Single Employee
+-------------------------------------------------------------- */
+const handleDownloadExcelSingle = async () => {
+  const { from, to } = dateRange;
+  if (!from || !to) {
+    alert("Please select a valid date range.");
+    return;
+  }
+
+  const emp = employees.find(
+    (e) => e.fullName === selectedEmployee && e.role !== "admin"
+  );
+  if (!emp) {
+    alert("Invalid employee selected.");
+    return;
+  }
+
+  const filtered = timesheetData.filter((item) => {
+    const entryDate = new Date(item.date);
+    return (
+      item.memberId === emp.id &&
+      entryDate >= new Date(from) &&
+      entryDate <= new Date(to)
     );
-    if (!emp) {
-      alert("Invalid employee selected.");
-      return;
+  });
+
+  if (filtered.length === 0) {
+    alert("No timesheet records found for this employee in the selected range.");
+    return;
+  }
+
+  const dailyHours = {};
+  let total = 0;
+
+  filtered.forEach((entry) => {
+    const dateStr = new Date(entry.date).toISOString().split("T")[0];
+    let validHours = 0;
+    try {
+      const blocks = JSON.parse(entry.hourBlocks || "[]");
+      validHours = blocks.filter(
+        (b) =>
+          b.projectType?.trim() &&
+          b.projectCategory?.trim() &&
+          b.projectName?.trim() &&
+          b.projectPhase?.trim() &&
+          b.projectTask?.trim()
+      ).length;
+    } catch (e) {
+      console.warn("Invalid JSON in hourBlocks:", entry.id);
     }
+    dailyHours[dateStr] = (dailyHours[dateStr] || 0) + validHours;
+    total += validHours;
+  });
 
-    const filtered = timesheetData.filter((item) => {
-      const entryDate = new Date(item.date);
-      return (
-        item.memberId === emp.id &&
-        entryDate >= new Date(from) &&
-        entryDate <= new Date(to)
-      );
+  // Create Excel workbook
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Employee Report");
+
+  // Add Logo
+  const logoImage = await fetch(logo)
+    .then((res) => res.blob())
+    .then((blob) => {
+      const reader = new FileReader();
+      return new Promise((resolve) => {
+        reader.onload = () => resolve(reader.result);
+        reader.readAsArrayBuffer(blob);
+      });
     });
 
-    if (filtered.length === 0) {
-      alert("No timesheet records found for this employee in the selected range.");
-      return;
-    }
+  const imageId = workbook.addImage({
+    buffer: logoImage,
+    extension: "png",
+  });
+  worksheet.addImage(imageId, {
+    tl: { col: 0.2, row: 0.2 },
+    ext: { width: 120, height: 60 },
+  });
 
-    const dailyHours = {};
-    let total = 0;
+  // Heading
+  worksheet.mergeCells("C2", "F2");
+  const headingCell = worksheet.getCell("C2");
+  headingCell.value = `Timesheet Report: ${emp.fullName} (${emp.empId})`;
+  headingCell.font = { size: 15, bold: true, color: { argb: "004085" } };
+  headingCell.alignment = { vertical: "middle", horizontal: "center" };
 
-    filtered.forEach((entry) => {
-      const dateStr = new Date(entry.date).toISOString().split("T")[0];
-      let validHours = 0;
+  worksheet.addRow([]);
+  worksheet.addRow(["Date", "Total Working Hours"]);
 
-      try {
-        const blocks = JSON.parse(entry.hourBlocks || "[]");
-        validHours = blocks.filter(
-          (b) =>
-            b.projectType?.trim() &&
-            b.projectCategory?.trim() &&
-            b.projectName?.trim() &&
-            b.projectPhase?.trim() &&
-            b.projectTask?.trim()
-        ).length;
-      } catch (e) {
-        console.warn("Invalid JSON in hourBlocks:", entry.id);
-      }
-
-      dailyHours[dateStr] = (dailyHours[dateStr] || 0) + validHours;
-      total += validHours;
-    });
-
-    let csv = "Date,Total Working Hours\n";
-    Object.entries(dailyHours).forEach(([date, hrs]) => {
-      csv += `${date},${hrs}\n`;
-    });
-    csv += `Total,${total} hrs\n`;
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${emp.fullName}_Timesheet_${from}_to_${to}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  // Style header
+  const headerRow = worksheet.lastRow;
+  headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
+  headerRow.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "4472C4" },
   };
+  headerRow.alignment = { horizontal: "center" };
 
-  // ===== Filter Employees for Table =====
+  Object.entries(dailyHours).forEach(([date, hrs]) => {
+    worksheet.addRow([date, hrs]);
+  });
+
+  worksheet.addRow([]);
+  worksheet.addRow(["Total", `${total} hrs`]);
+  worksheet.getCell(`A${worksheet.lastRow.number}`).font = { bold: true };
+
+  worksheet.columns = [
+    { width: 20 },
+    { width: 25 },
+  ];
+
+  // Add borders
+  worksheet.eachRow({ includeEmpty: false }, (row) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: "thin", color: { argb: "CCCCCC" } },
+        left: { style: "thin", color: { argb: "CCCCCC" } },
+        bottom: { style: "thin", color: { argb: "CCCCCC" } },
+        right: { style: "thin", color: { argb: "CCCCCC" } },
+      };
+    });
+  });
+
+  // Protect sheet
+  await worksheet.protect("TansamReport2025", {
+    selectLockedCells: true,
+    selectUnlockedCells: false,
+    formatCells: false,
+    insertRows: false,
+    deleteRows: false,
+    sort: false,
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer]), `${emp.fullName}_Timesheet_${from}_to_${to}.xlsx`);
+};
+
+
+  /* --------------------------------------------------------------
+     Table Filter
+  -------------------------------------------------------------- */
   const filteredEmployees = employees.filter((emp) =>
     emp.fullName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  /* --------------------------------------------------------------
+     Autocomplete: Search by Name OR Emp ID
+  -------------------------------------------------------------- */
+  const filteredSuggestions = useMemo(() => {
+    const term = inputValue.trim().toLowerCase();
+    if (!term || term === "all") {
+      return employees.filter((e) => e.role?.toLowerCase() !== "admin");
+    }
+    return employees.filter(
+      (e) =>
+        e.role?.toLowerCase() !== "admin" &&
+        (e.fullName?.toLowerCase().includes(term) ||
+          e.empId?.toLowerCase().includes(term))
+    );
+  }, [employees, inputValue]);
+
+  // Select employee
+  const pickEmployee = (emp) => {
+    setSelectedEmployee(emp.fullName);
+    setSelectedEmployeeId(emp.empId);
+    setInputValue(`${emp.fullName} (${emp.empId})`);
+    setShowSuggestions(false);
+  };
+
+  // Reset to "All"
+  const resetEmployee = () => {
+    setSelectedEmployee("All");
+    setSelectedEmployeeId("");
+    setInputValue("All");
+  };
+
+  // Enter key support
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && filteredSuggestions.length === 1) {
+      pickEmployee(filteredSuggestions[0]);
+    }
+  };
 
   return (
     <>
@@ -275,9 +466,7 @@ const EmployeeDetail = () => {
               <div className="icon admin"></div>
               <div>
                 <h3>
-                  {employees.filter(
-                    (e) => e.role?.toLowerCase() === "admin"
-                  ).length}
+                  {employees.filter((e) => e.role?.toLowerCase() === "admin").length}
                 </h3>
                 <p>Admins</p>
               </div>
@@ -286,9 +475,7 @@ const EmployeeDetail = () => {
               <div className="icon employee"></div>
               <div>
                 <h3>
-                  {employees.filter(
-                    (e) => e.role?.toLowerCase() !== "admin"
-                  ).length}
+                  {employees.filter((e) => e.role?.toLowerCase() !== "admin").length}
                 </h3>
                 <p>Employees</p>
               </div>
@@ -330,10 +517,12 @@ const EmployeeDetail = () => {
           </div>
 
           {/* ===== Search & Filter Bar ===== */}
-          <div className="search-bar d-flex align-items-center flex-nowrap gap-2" style={{ justifyContent: "flex-start" }}>
-            {/* Main Search */}
+          <div
+            className="search-bar d-flex align-items-center flex-nowrap gap-2"
+            style={{ justifyContent: "flex-start" }}
+          >
+            {/* Global Search */}
             <div style={{ position: "relative" }}>
-              {/* Search Icon (SVG) */}
               <svg
                 width="18"
                 height="18"
@@ -371,30 +560,47 @@ const EmployeeDetail = () => {
               />
             </div>
 
-            {/* Employee Autocomplete */}
-            <div style={{ position: "relative", display: "flex", alignItems: "center", marginLeft: "16px" }}>
+            {/* Employee Autocomplete (Name or ID) */}
+            <div
+              style={{
+                position: "relative",
+                marginLeft: "16px",
+              }}
+            >
               <input
                 id="employeeSearch"
                 type="text"
-                placeholder="Type employee name..."
-                value={selectedEmployee}
-                onChange={(e) => setSelectedEmployee(e.target.value)}
+                placeholder="Name or Emp ID..."
+                value={inputValue}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setInputValue(val);
+                  setShowSuggestions(true);
+                  if (val !== "All") {
+                    setSelectedEmployee("All");
+                    setSelectedEmployeeId("");
+                  }
+                }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                onKeyDown={handleKeyDown}
                 style={{
                   padding: "6px 28px 6px 10px",
                   borderRadius: "6px",
                   border: "1px solid #ccc",
                   outline: "none",
-                  width: "140px",
+                  width: "200px",
                   height: "36px",
                   fontSize: "14px",
+                  marginRight:"20PX"
                 }}
               />
+
+              {/* Clear Button */}
               {selectedEmployee !== "All" && (
                 <button
                   type="button"
-                  onClick={() => setSelectedEmployee("All")}
+                  onClick={resetEmployee}
                   style={{
                     position: "absolute",
                     right: "8px",
@@ -407,7 +613,6 @@ const EmployeeDetail = () => {
                   }}
                   title="Reset to All"
                 >
-                  {/* Close Icon (SVG) */}
                   <svg
                     width="16"
                     height="16"
@@ -424,16 +629,19 @@ const EmployeeDetail = () => {
                   </svg>
                 </button>
               )}
+
+              {/* Suggestions */}
               {showSuggestions && (
                 <ul
                   className="list-group position-absolute bg-white shadow-sm"
                   style={{
-                    top: "40px",
+                    top: "100%",
                     left: 0,
-                    width: "100%",
+                    right: 0,
+                    marginTop: "4px",
                     zIndex: 1000,
                     borderRadius: "6px",
-                    maxHeight: "150px",
+                    maxHeight: "180px",
                     overflowY: "auto",
                     border: "1px solid #ccc",
                   }}
@@ -443,17 +651,21 @@ const EmployeeDetail = () => {
                       <li
                         key={emp.id}
                         className="list-group-item list-group-item-action"
-                        onMouseDown={() => {
-                          setSelectedEmployee(emp.fullName);
-                          setShowSuggestions(false);
+                        onMouseDown={() => pickEmployee(emp)}
+                        style={{
+                          cursor: "pointer",
+                          padding: "8px 10px",
+                          fontSize: "14px",
                         }}
-                        style={{ cursor: "pointer", padding: "8px 10px", fontSize: "14px" }}
                       >
-                        {emp.fullName}
+                        {emp.fullName} – <strong>{emp.empId}</strong>
                       </li>
                     ))
                   ) : (
-                    <li className="list-group-item text-muted" style={{ padding: "8px 10px", fontSize: "14px" }}>
+                    <li
+                      className="list-group-item text-muted"
+                      style={{ padding: "8px 10px", fontSize: "14px" }}
+                    >
                       No matches found
                     </li>
                   )}
@@ -463,61 +675,94 @@ const EmployeeDetail = () => {
 
             {/* Period / Date Range */}
             {selectedEmployee === "All" ? (
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "8px",
-                height: "36px", 
-                padding: "0 8px",
-                border: "1px solid #ccc",
-                borderRadius: "6px",
-                backgroundColor: "#fff"
-              }}>
-                <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151", whiteSpace: "nowrap" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  height: "36px",
+                  padding: "0 8px",
+                  border: "1px solid #ccc",
+                  borderRadius: "6px",
+                  backgroundColor: "#fff",
+                  marginRight:"20PX",
+                  padding:"5PX"
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    color: "#374151",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   Period:
                 </span>
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
-                  style={{ 
-                    border: "none", 
-                    outline: "none", 
+                  style={{
+                    border: "none",
+                    outline: "none",
                     background: "transparent",
                     width: "90px",
                     fontSize: "14px",
-                    height: "100%"
+                    height: "100%",
                   }}
                 >
                   <option value="">Select Year</option>
-                  {Array.from({ length: 41 }, (_, i) => 2000 + i).map(year => (
-                    <option key={year} value={year}>{year}</option>
+                  {Array.from({ length: 41 }, (_, i) => 2000 + i).map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
                   ))}
                 </select>
               </div>
             ) : (
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "8px",
-                height: "36px", 
-                padding: "0 8px",
-                border: "1px solid #ccc",
-                borderRadius: "6px",
-                backgroundColor: "#fff"
-              }}>
-                <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}>From:</span>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  height: "36px",
+                  padding: "0 8px",
+                  border: "1px solid #ccc",
+                  borderRadius: "6px",
+                  backgroundColor: "#fff",
+                }}
+              >
+                <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}>
+                  From:
+                </span>
                 <input
                   type="date"
                   value={dateRange.from}
-                  onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
-                  style={{ border: "none", outline: "none", width: "140px", fontSize: "14px" }}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, from: e.target.value })
+                  }
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    width: "140px",
+                    fontSize: "14px",
+                  }}
                 />
-                <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}>To:</span>
+                <span style={{ fontSize: "14px", fontWeight: "500", color: "#374151" }}>
+                  To:
+                </span>
                 <input
                   type="date"
                   value={dateRange.to}
-                  onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
-                  style={{ border: "none", outline: "none", width: "140px", fontSize: "14px" }}
+                  onChange={(e) =>
+                    setDateRange({ ...dateRange, to: e.target.value })
+                  }
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    width: "140px",
+                    fontSize: "14px",
+                  }}
                 />
               </div>
             )}
@@ -526,7 +771,7 @@ const EmployeeDetail = () => {
             {selectedEmployee === "All" ? (
               <button
                 className="btn btn-primary"
-                onClick={handleDownloadCSV}
+                onClick={handleDownloadExcelAll}   // ✅ Removed extra {}
                 style={{ height: "36px", padding: "0 16px" }}
               >
                 Download CSV
@@ -534,11 +779,12 @@ const EmployeeDetail = () => {
             ) : (
               <button
                 className="btn btn-success"
-                onClick={handleDownloadCSVSingle}
+                onClick={handleDownloadExcelSingle}
                 style={{ height: "36px", padding: "0 16px" }}
               >
                 Download CSV
               </button>
+
             )}
           </div>
 
@@ -620,7 +866,9 @@ const EmployeeDetail = () => {
                                   })
                                     .then((res) => res.json())
                                     .then(() =>
-                                      setEmployees(employees.filter((e) => e.id !== emp.id))
+                                      setEmployees(
+                                        employees.filter((e) => e.id !== emp.id)
+                                      )
                                     );
                                 }
                               }}
