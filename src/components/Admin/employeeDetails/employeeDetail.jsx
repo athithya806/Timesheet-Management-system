@@ -567,34 +567,68 @@ const handleDownloadExcelSingle = async () => {
                 marginLeft: "16px",
               }}
             >
-              <input
-                id="employeeSearch"
-                type="text"
-                placeholder="Name or Emp ID..."
-                value={inputValue}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setInputValue(val);
-                  setShowSuggestions(true);
-                  if (val !== "All") {
-                    setSelectedEmployee("All");
-                    setSelectedEmployeeId("");
-                  }
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                onKeyDown={handleKeyDown}
-                style={{
-                  padding: "6px 28px 6px 10px",
-                  borderRadius: "6px",
-                  border: "1px solid #ccc",
-                  outline: "none",
-                  width: "200px",
-                  height: "36px",
-                  fontSize: "14px",
-                  marginRight:"20PX"
-                }}
-              />
+             <input
+  id="employeeSearch"
+  type="text"
+  placeholder="Name or Emp ID..."
+  value={inputValue}
+  onChange={(e) => {
+    const val = e.target.value;
+    setInputValue(val);
+    setShowSuggestions(val.trim().length > 0); // 👈 only show if typing something
+
+    if (val !== "All") {
+      setSelectedEmployee("All");
+      setSelectedEmployeeId("");
+    }
+  }}
+  onFocus={() => {
+    if (inputValue.trim().length > 0) setShowSuggestions(true); // 👈 only open if something typed
+  }}
+  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+  onKeyDown={handleKeyDown}
+  style={{
+    padding: "6px 28px 6px 10px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    outline: "none",
+    width: "200px",
+    height: "36px",
+    fontSize: "14px",
+    marginRight: "20px",
+  }}
+/>
+
+{/* 👇 Suggestion dropdown */}
+{showSuggestions && inputValue.trim().length > 0 && (
+  <div className="suggestion-box">
+    {employees
+      .filter((emp) => {
+        const name = emp?.name?.toLowerCase() || ""; // 👈 safe fallback
+        const id = emp?.id?.toString() || ""; // 👈 safe fallback
+        return (
+          name.includes(inputValue.toLowerCase()) ||
+          id.includes(inputValue)
+        );
+      })
+      .map((emp) => (
+        <div
+          key={emp.id}
+          className="suggestion-item"
+          onMouseDown={() => {
+            setInputValue(`${emp.name} (${emp.id})`);
+            setSelectedEmployee(emp.name);
+            setSelectedEmployeeId(emp.id);
+            setShowSuggestions(false);
+          }}
+        >
+          {emp.name} ({emp.id})
+        </div>
+      ))}
+  </div>
+)}
+
+
 
               {/* Clear Button */}
               {selectedEmployee !== "All" && (

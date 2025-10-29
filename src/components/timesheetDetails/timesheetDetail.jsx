@@ -87,26 +87,44 @@ const TimesheetDetail = () => {
     return `${displayHour} ${suffix}`;
   };
 
-  function getHourSummaries(timecardData) {
-    let totalHours = 0;
-    let workingHours = 0;
 
-    timecardData.forEach(entry => {
-      let hourBlocks = [];
-      try {
-        hourBlocks = JSON.parse(entry.hourBlocks || "[]");
-      } catch {
-        hourBlocks = [];
-      }
-      const hours = hourBlocks.length;
-      totalHours += hours;
-      if (entry.status !== "Leave") {
-        workingHours += hours;
+function getHourSummaries(timecardData) {
+  let totalHours = 0;
+  let workingHours = 0;
+
+  timecardData.forEach(entry => {
+    // Skip Leave days – they contribute 0 to Regular hours
+    if (entry.status === "Leave") return;
+
+    let hourBlocks = [];
+    try {
+      hourBlocks = JSON.parse(entry.hourBlocks || "[]");
+    } catch {
+      hourBlocks = [];
+    }
+
+    hourBlocks.forEach(block => {
+      // ignore lunch break (hour 13) – it never counts as Regular
+      const hourKey = parseHourKeyFromRange(block.hour);
+      if (hourKey === 13) return;
+
+      // All required fields must be present & non-empty
+      const isFilled =
+        block.projectType?.trim() &&
+        block.projectCategory?.trim() &&
+        block.projectName?.trim() &&
+        block.projectPhase?.trim() &&
+        block.projectTask?.trim();
+
+      if (isFilled) {
+        totalHours += 1;      // every filled slot = 1 hour
+        workingHours += 1;    // Regular = filled work slots
       }
     });
+  });
 
-    return { totalHours, workingHours };
-  }
+  return { totalHours, workingHours };
+}
 
   const { totalHours, workingHours } = getHourSummaries(timecardData);
 
