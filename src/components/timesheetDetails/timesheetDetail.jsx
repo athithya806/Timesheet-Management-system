@@ -108,6 +108,7 @@ function getHourSummaries(timecardData) {
       const hourKey = parseHourKeyFromRange(block.hour);
       if (hourKey === 13) return;
 
+      
       // All required fields must be present & non-empty
       const isFilled =
         block.projectType?.trim() &&
