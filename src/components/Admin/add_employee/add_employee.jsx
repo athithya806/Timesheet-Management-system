@@ -12,6 +12,8 @@ const DEPARTMENTS = [
   "Research Centre For Asset Performance",
   "Product Innovation Center",
   "Predictive Engineering",
+  "Nan Mudhalvan",
+  "Admin"
 ];
 
 const ROLES = ["admin", "employee"];
@@ -332,19 +334,19 @@ if (isEditMode) {
   disabled={isEditMode} // disable on edit
   style={{ flex: 1 }}
 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  className="show-password-btn"
-                  style={{
-                    cursor: "pointer",
-                    border: "none",
-                    background: "transparent",
-                  }}
-                  tabIndex={-1}
-                >
-                  {showPassword ? "Hide" : "Show"}
-                </button>
+                {/* <button */}
+                  {/* // type="button"
+                  // onClick={() => setShowPassword((s) => !s)}
+                  // className="show-password-btn"
+                  // style={{ */}
+                  {/* //   cursor: "pointer",
+                  //   border: "none",
+                //     background: "transparent",
+                //   }}
+                //   tabIndex={-1}
+                // >
+                //   {showPassword ? "Hide" : "Show"}
+                // </button> */}
               </div>
               {formData.password.length > 0 && !passwordIsValid() && (
                 <div className="password-hint">
